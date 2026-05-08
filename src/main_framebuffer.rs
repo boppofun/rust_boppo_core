@@ -146,7 +146,7 @@ impl MainFramebuffer {
         clippy::missing_panics_doc,
         reason = "Mutex is internal and should not poisen"
     )]
-    pub fn get_currently_set(&self) -> Framebuffer {
+    pub fn get_currently_set(&self) -> Framebuffer<RGB> {
         let inner = self.inner.lock().unwrap();
         inner.buffer.clone()
     }
@@ -178,7 +178,7 @@ impl std::fmt::Debug for MainFramebuffer {
 
 struct MainFramebufferInner {
     /// Do not call flush methods on this framebuffer
-    pub buffer: Framebuffer,
+    pub buffer: Framebuffer<RGB>,
     pub auto_flush: bool,
     pub hal: hal::SetAndFlushLights,
 }
