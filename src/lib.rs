@@ -1,8 +1,8 @@
 #![deny(missing_docs)]
 #![deny(clippy::missing_errors_doc)]
 #![deny(clippy::missing_panics_doc)]
-//! The core APIs for creating activities for Boppo shared across different
-//! environments.
+//! The core APIs for creating activities for [Boppo](https://boppo.com) shared
+//! across different environments.
 //!
 //! ## Lights
 //!

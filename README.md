@@ -1,6 +1,6 @@
 # Boppo Core APIs for Rust
 
-The core APIs for creating activities for the Boppo tablet shared across different environments.
+The core APIs for creating activities for the [Boppo tablet](https://boppo.com) shared across different environments.
 
 ## License
 
