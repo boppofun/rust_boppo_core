@@ -7,6 +7,7 @@
 
 pub use rgb;
 pub use rgb::RGB8 as RGB;
+pub use rgb::RGBA8 as RGBA;
 
 /// #000000
 pub const OFF: RGB = RGB::new(0, 0, 0);
@@ -58,23 +59,22 @@ pub const PINK: RGB = RGB::new(255, 112, 133);
 /// Anything inbetween returns the weighted component average of `c1` and `c2`.
 #[must_use]
 pub const fn blend(c1: RGB, c2: RGB, percent_second: f32) -> RGB {
-    #[allow(
-        clippy::cast_possible_truncation,
-        clippy::cast_sign_loss,
-        reason = "`rhs_percent.clamp(0.0, 1.0)` ensures `f32::from(u8)*percent_second<=255`, u8 ensures non-negative."
-    )]
-    const fn mix_component(a: u8, b: u8, percent_second: f32) -> u8 {
-        ((a as f32 * (1.0 - percent_second)).round() as u8)
-            .saturating_add((b as f32 * percent_second).round() as u8)
-    }
-
-    let percent_second = percent_second.clamp(0.0, 1.0);
-
     RGB {
         r: mix_component(c1.r, c2.r, percent_second),
         g: mix_component(c1.g, c2.g, percent_second),
         b: mix_component(c1.b, c2.b, percent_second),
     }
+}
+
+#[allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    reason = "`rhs_percent.clamp(0.0, 1.0)` ensures `f32::from(u8)*percent_second<=255`, u8 ensures non-negative."
+)]
+const fn mix_component(a: u8, b: u8, percent_second: f32) -> u8 {
+    let percent_second = percent_second.clamp(0.0, 1.0);
+    ((a as f32 * (1.0 - percent_second)).round() as u8)
+        .saturating_add((b as f32 * percent_second).round() as u8)
 }
 
 /// Dim a color.
@@ -97,28 +97,48 @@ pub fn brightness(color: RGB) -> f32 {
 }
 
 /// Extension trait for useful operations on colors.
-pub trait ColorExt {
+pub trait ColorExt: Clone + Default + PartialEq {
+    /// The type that will be used for percents for blending, dimming and luminance.
+    type Percent: Clone
+        + std::ops::Add<Self::Percent, Output = Self::Percent>
+        + std::ops::Mul<Self::Percent, Output = Self::Percent>
+        + std::ops::Div<Self::Percent, Output = Self::Percent>
+        + std::ops::Sub<Self::Percent, Output = Self::Percent>;
+    /// The 8-bit RGB representation of this type.
+    type RGB8;
+
+    /// BLACK or OFF for this Color.
+    const OFF: Self;
+
     /// Blend two colors.
     ///
     /// `rhs_percent` 0.0 returns `self`, `rhs_percent` 1.0 returns `rhs`.
     /// Anything inbetween returns the weighted component average of `self` and `rhs`.
     #[must_use]
-    fn blend(self, rhs: Self, rhs_percent: f32) -> Self;
+    fn blend(self, rhs: Self, rhs_percent: Self::Percent) -> Self;
 
     /// Dim a color.
     ///
     /// `percent`: 0.0 is [`OFF`] and 1.0 is `color` unchanged.
     #[must_use]
-    fn dim_to(self, percent: f32) -> Self;
+    fn dim_to(self, percent: Self::Percent) -> Self;
 
     /// Luminance of this color, not accounting for how the human eye perceives color.
     ///
     /// `color::BLACK` has luminance 0.0, and `color::WHITE` has luminance 1.0
     #[must_use]
-    fn luminance(self) -> f32;
+    fn luminance(self) -> Self::Percent;
+
+    /// Convert this color to [`RGB`]
+    fn to_rgb_u8(&self) -> Self::RGB8;
 }
 
 impl ColorExt for RGB {
+    type Percent = f32;
+    type RGB8 = RGB;
+
+    const OFF: Self = OFF;
+
     fn blend(self, rhs: Self, rhs_percent: f32) -> Self {
         blend(self, rhs, rhs_percent)
     }
@@ -129,5 +149,46 @@ impl ColorExt for RGB {
 
     fn luminance(self) -> f32 {
         brightness(self)
+    }
+
+    fn to_rgb_u8(&self) -> Self::RGB8 {
+        *self
+    }
+}
+
+impl ColorExt for RGBA {
+    type Percent = f32;
+    type RGB8 = RGB;
+
+    const OFF: Self = RGBA {
+        r: 0,
+        g: 0,
+        b: 0,
+        a: 255,
+    };
+
+    fn blend(self, rhs: Self, rhs_percent: Self::Percent) -> Self {
+        self.rgb()
+            .blend(rhs.rgb(), rhs_percent)
+            .with_alpha(mix_component(self.a, rhs.a, rhs_percent))
+        // let [lhs, rhs] = [self, rhs].map(|c| c.map(|comp| f32::from(comp) / 255.0));
+        //
+        // let a = 1.0 - (1.0 - lhs.a) * (1.0 - rhs.a);
+        // let [r, g, b] = [(lhs.r, rhs.r), (lhs.g, rhs.g), (lhs.b, rhs.b)]
+        //     .map(|(a, b)| a * lhs.a / rhs.a + b * (1.0 - lhs.a) / rhs.a);
+        // let [r, g, b, a] = [r, g, b, a].map(|c| (c * 255.) as u8);
+        // RGBA { r, g, b, a }
+    }
+
+    fn dim_to(self, percent: Self::Percent) -> Self {
+        self.blend(OFF.with_alpha(255), percent)
+    }
+
+    fn luminance(self) -> Self::Percent {
+        self.rgb().luminance() * (f32::from(self.a) / 255.0)
+    }
+
+    fn to_rgb_u8(&self) -> Self::RGB8 {
+        self.rgb()
     }
 }
