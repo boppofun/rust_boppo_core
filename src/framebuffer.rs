@@ -191,6 +191,11 @@ impl Framebuffer<RGB> {
 }
 
 impl Framebuffer<RGBA> {
+    /// Flush the buffer's contents to lights, ignoring alpha level.
+    pub fn flush_no_alpha(&self) {
+        self.to_rgb().flush();
+    }
+
     /// Convert `self` to `Framebuffer<RGB>`, ignoring alpha values.
     ///
     /// If you want to convert to RGB without ignoring alpha, use [`dim_to_rgb`].
@@ -212,43 +217,23 @@ impl Framebuffer<RGBA> {
 
     /// Blend `self` with `rhs`, using both buffers' alphas.
     pub fn alpha_blend(&self, rhs: &Self) -> Self {
-        let mut lhs: [rgb::RGBA<f32>; Lights::COUNT] = self.colors.map(std::convert::Into::into);
-        let mut rhs: [rgb::RGBA<f32>; Lights::COUNT] = rhs.colors.map(std::convert::Into::into);
-        let mut temp_buffer = [rgb::RGBA::<f32>::default(); Lights::COUNT];
+        let mut out_buffer = [RGBA::OFF; Lights::COUNT];
         let mut i = 0;
 
         while i < Lights::COUNT {
-            lhs[i] = lhs[i].map(|c| c / 255.);
-            rhs[i] = rhs[i].map(|c| c / 255.);
-            i += 1;
-        }
+            let lhs = self.colors[i].map(|c| f32::from(c) / 255.);
+            let rhs = rhs.colors[i].map(|c| f32::from(c) / 255.);
+            let alpha_factor = lhs.a / rhs.a;
+            let alpha_factor2 = (1.0 - lhs.a) / rhs.a;
 
-        i = 0;
+            out_buffer[i] = rgb::RGBA::<f32>::new(
+                lhs.r * alpha_factor + rhs.r * alpha_factor2,
+                lhs.g * alpha_factor + rhs.g * alpha_factor2,
+                lhs.b * alpha_factor + rhs.b * alpha_factor2,
+                1. - (1. - lhs.a) * (1. - rhs.a),
+            )
+            .map(|c| (c * 255.) as u8);
 
-        while i < Lights::COUNT {
-            temp_buffer[i].a = 1. - (1. - lhs[i].a) * (1. - rhs[i].a);
-            i += 1;
-        }
-
-        i = 0;
-
-        while i < Lights::COUNT {
-            let lhs_a = lhs[i].a;
-            let rhs_a = rhs[i].a;
-            let alpha_factor = lhs_a / rhs_a;
-            let alpha_factor2 = (1.0 - lhs_a) / rhs_a;
-
-            temp_buffer[i].r = lhs[i].r * alpha_factor + rhs[i].r * alpha_factor2;
-            temp_buffer[i].g = lhs[i].g * alpha_factor + rhs[i].g * alpha_factor2;
-            temp_buffer[i].b = lhs[i].b * alpha_factor + rhs[i].b * alpha_factor2;
-            i += 1;
-        }
-
-        i = 0;
-
-        let mut out_buffer = [RGBA::OFF; Lights::COUNT];
-        while i < Lights::COUNT {
-            out_buffer[i] = temp_buffer[i].map(|c| (c * 255.) as u8);
             i += 1;
         }
 
