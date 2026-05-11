@@ -152,36 +152,6 @@ impl<C: Color> Framebuffer<C> {
 }
 
 impl Framebuffer<RGB> {
-    /// Flush a framebuffer by only updating a given set of lights instead of the
-    /// whole board.
-    pub fn flush_with_mask(&self, mask: Lights) {
-        LightsSetter::get().set_colors_on_selection(mask, &self.colors);
-    }
-    ///
-    /// Flush all lights that are any value besides `color::OFF`. All other lights
-    /// will be left unchanged.
-    ///
-    // TODO: this should probably be removed when we get a framebuffer that has
-    // alpha channel support which flushes according to alpha level. This
-    // work around does not work for painting "black" (aka off).
-    pub fn flush_on_colors(&self) {
-        let on_lights = Lights::from_indices(
-            self.colors
-                .iter()
-                .enumerate()
-                .filter(|&(_, c)| *c != crate::color::OFF)
-                .map(|(idx, _)| idx),
-        );
-        self.flush_with_mask(on_lights);
-    }
-
-    /// Flush a framebuffer by only updating a given set of lights instead of the
-    /// whole board, then immediately clear its underlying data for non-cumulative re-use.
-    pub fn flush_with_mask_and_clear(&mut self, mask: Lights) {
-        self.flush_with_mask(mask);
-        self.clear();
-    }
-
     /// Convert `self` to `Framebuffer<RGBA>`, using `a` as the alpha value for each pixel.
     pub fn with_alpha(self, a: u8) -> Framebuffer<RGBA> {
         Framebuffer {
