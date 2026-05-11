@@ -1,6 +1,5 @@
 //! Provides the [`Updatable`] trait and types and functions for working with [`Updatable`s][Updatable].
 use crate::{Lights, LightsSetter, color};
-use std::time::Duration;
 
 use embassy_time::{Instant, Timer};
 
@@ -22,7 +21,7 @@ pub trait Updatable: Send {
     /// - `delta_time` is the actual time that has passed since the previous update was called.
     ///   It might be longer than the frame rate if, for example, if the CPU has been very busy
     ///   or if updates have been paused.
-    fn update(&mut self, delta_time: Duration) -> LoopControlFlow;
+    fn update(&mut self, delta_time: std::time::Duration) -> LoopControlFlow;
 
     /// Run this updatable with the following default options:
     ///
@@ -69,10 +68,26 @@ pub async fn run_with_opts(
     // before the first frame delay (the first delta_time will be shorter)
     let mut update_start = Instant::now();
 
+    const REPORT_FPS: bool = false;
+    let mut elapseds = Vec::new();
+    let mut last_fps_report = update_start;
+
     // Actual update cycle loop
     'update_loop: loop {
         let now = Instant::now();
         let elapsed = now.duration_since(update_start);
+        if REPORT_FPS {
+            elapseds.push(elapsed.as_millis());
+            let time_since_last_report = now - last_fps_report;
+            if time_since_last_report >= embassy_time::Duration::from_secs(5) {
+                let fps = elapseds.len() as f32
+                    / (time_since_last_report.as_micros() as f32 / 1_000_000.0);
+                log::info!("fps: {}", fps);
+                log::info!("processing times (ms): {:?}", elapseds);
+                last_fps_report = now;
+                elapseds.clear();
+            }
+        }
         if elapsed <= delay {
             let sleep_time = delay - elapsed;
             // log::warn!("update_loop early: {} ms", sleep_time.as_millis());
@@ -114,7 +129,7 @@ impl InSeries {
 }
 
 impl Updatable for InSeries {
-    fn update(&mut self, delta_time: Duration) -> LoopControlFlow {
+    fn update(&mut self, delta_time: std::time::Duration) -> LoopControlFlow {
         let Some(updatable) = &mut self.updatables.last_mut() else {
             return LoopControlFlow::Break;
         };
@@ -144,7 +159,7 @@ impl InParallel {
 }
 
 impl Updatable for InParallel {
-    fn update(&mut self, delta_time: Duration) -> LoopControlFlow {
+    fn update(&mut self, delta_time: std::time::Duration) -> LoopControlFlow {
         self.updatables
             .retain_mut(|up| up.update(delta_time) == LoopControlFlow::Continue);
         if self.updatables.is_empty() {
@@ -158,22 +173,22 @@ impl Updatable for InParallel {
 /// Returns [`LoopControlFlow::Break`] after a specified time has elapsed when [`run`].
 /// Does note provide precise timing.
 pub struct DoNothingFor {
-    remaining: Duration,
+    remaining: std::time::Duration,
 }
 
 impl DoNothingFor {
     /// Returns a [`DoNothingFor`] that will do return [`LoopControlFlow::Break`] after at least
     /// `time` has elapsed.
     #[must_use]
-    pub fn new(time: Duration) -> DoNothingFor {
+    pub fn new(time: std::time::Duration) -> DoNothingFor {
         DoNothingFor { remaining: time }
     }
 }
 
 impl Updatable for DoNothingFor {
-    fn update(&mut self, delta_time: Duration) -> LoopControlFlow {
+    fn update(&mut self, delta_time: std::time::Duration) -> LoopControlFlow {
         self.remaining = self.remaining.checked_sub(delta_time).unwrap_or_default();
-        if self.remaining == Duration::from_millis(0) {
+        if self.remaining == std::time::Duration::from_millis(0) {
             LoopControlFlow::Break
         } else {
             LoopControlFlow::Continue
