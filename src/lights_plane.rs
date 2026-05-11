@@ -16,7 +16,7 @@
 //! * [`Button::B9`] (bottom right) is at coordinates (4,-1).
 
 use crate::Framebuffer;
-use crate::{Button, LightDir, Lights, color::ColorExt};
+use crate::{Button, LightDir, Lights, color::Color};
 
 mod coordinates;
 
@@ -27,7 +27,7 @@ pub use {coordinates::BUTTON_LOCATIONS, coordinates::LIGHT_LOCATIONS};
 /// Coordinates are defined in the module documentation.
 ///
 /// Frame buffer needs to be flushed for lights to be updated.
-pub fn draw_light_circle_with_mask<C: ColorExt<Percent = f32> + Copy>(
+pub fn draw_light_circle_with_mask<C: Color + Copy>(
     c: C,
     x: f32,
     y: f32,
@@ -65,7 +65,7 @@ pub fn draw_light_circle_with_mask<C: ColorExt<Percent = f32> + Copy>(
 /// Draws a `c`-colored, radius `radius`, circle at `x, y` onto `fb`, ignoring any lights not
 /// selected by `mask`.
 /// Does not flush `fb`.
-pub fn draw_light_circle_no_fall_off<C: ColorExt<Percent = f32> + Copy>(
+pub fn draw_light_circle_no_fall_off<C: Color + Copy>(
     c: C,
     x: f32,
     y: f32,
@@ -93,7 +93,7 @@ pub fn draw_light_circle_no_fall_off<C: ColorExt<Percent = f32> + Copy>(
 /// Coordinates are defined in the module documentation.
 ///
 /// Frame buffer needs to be flushed for lights to be updated.
-pub fn draw_light_rectangle_with_mask<C: ColorExt<Percent = f32> + Copy>(
+pub fn draw_light_rectangle_with_mask<C: Color + Copy>(
     color: C,
     x: f32,
     y: f32,
@@ -116,7 +116,7 @@ pub fn draw_light_rectangle_with_mask<C: ColorExt<Percent = f32> + Copy>(
 /// Coordinates are defined in the module documentation.
 ///
 /// Frame buffer needs to be flushed for lights to be updated.
-pub fn draw_light_circle<C: ColorExt<Percent = f32> + Copy>(
+pub fn draw_light_circle<C: Color + Copy>(
     c: C,
     x: f32,
     y: f32,
@@ -133,7 +133,7 @@ pub fn draw_light_circle<C: ColorExt<Percent = f32> + Copy>(
 /// Coordinates are defined in the module documentation.
 ///
 /// Frame buffer needs to be flushed for lights to be updated.
-pub fn draw_light_rectangle<C: ColorExt<Percent = f32> + Copy>(
+pub fn draw_light_rectangle<C: Color + Copy>(
     color: C,
     x: f32,
     y: f32,
