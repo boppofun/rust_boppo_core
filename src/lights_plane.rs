@@ -27,7 +27,7 @@ pub use {coordinates::BUTTON_LOCATIONS, coordinates::LIGHT_LOCATIONS};
 /// Coordinates are defined in the module documentation.
 ///
 /// Frame buffer needs to be flushed for lights to be updated.
-pub fn draw_light_circle_with_mask<C: Color + Copy>(
+pub fn draw_light_circle_with_mask<C: Color>(
     c: C,
     x: f32,
     y: f32,
@@ -65,7 +65,7 @@ pub fn draw_light_circle_with_mask<C: Color + Copy>(
 /// Draws a `c`-colored, radius `radius`, circle at `x, y` onto `fb`, ignoring any lights not
 /// selected by `mask`.
 /// Does not flush `fb`.
-pub fn draw_light_circle_no_fall_off<C: Color + Copy>(
+pub fn draw_light_circle_no_fall_off<C: Color>(
     c: C,
     x: f32,
     y: f32,
@@ -93,7 +93,7 @@ pub fn draw_light_circle_no_fall_off<C: Color + Copy>(
 /// Coordinates are defined in the module documentation.
 ///
 /// Frame buffer needs to be flushed for lights to be updated.
-pub fn draw_light_rectangle_with_mask<C: Color + Copy>(
+pub fn draw_light_rectangle_with_mask<C: Color>(
     color: C,
     x: f32,
     y: f32,
@@ -116,13 +116,7 @@ pub fn draw_light_rectangle_with_mask<C: Color + Copy>(
 /// Coordinates are defined in the module documentation.
 ///
 /// Frame buffer needs to be flushed for lights to be updated.
-pub fn draw_light_circle<C: Color + Copy>(
-    c: C,
-    x: f32,
-    y: f32,
-    radius: f32,
-    fb: &mut Framebuffer<C>,
-) {
+pub fn draw_light_circle<C: Color>(c: C, x: f32, y: f32, radius: f32, fb: &mut Framebuffer<C>) {
     draw_light_circle_with_mask(c, x, y, radius, fb, Lights::all());
 }
 
@@ -133,7 +127,7 @@ pub fn draw_light_circle<C: Color + Copy>(
 /// Coordinates are defined in the module documentation.
 ///
 /// Frame buffer needs to be flushed for lights to be updated.
-pub fn draw_light_rectangle<C: Color + Copy>(
+pub fn draw_light_rectangle<C: Color>(
     color: C,
     x: f32,
     y: f32,

@@ -144,7 +144,7 @@ impl LightsSetter {
         clippy::missing_panics_doc,
         reason = "Mutex is internal and should not poisen"
     )]
-    pub fn get_currently_set(&self) -> Framebuffer<RGB> {
+    pub fn get_currently_set(&self) -> Framebuffer {
         let inner = self.inner.lock().unwrap();
         inner.buffer.clone()
     }
