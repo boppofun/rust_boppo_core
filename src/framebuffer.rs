@@ -1,19 +1,25 @@
 use std::ops::{Add, Div, Mul, Sub};
 
-use crate::{Buttons, Lights, MainFramebuffer, color::ColorExt};
+use rgb::{ColorComponentMap, ComponentMap};
+
+use crate::{
+    Buttons, Lights, MainFramebuffer,
+    color::{Color, RGB, RGBA},
+};
 
 /// On "off-screen" buffer storing a color for each light on the tablet.
 ///
 /// These colors can be modifed with a simlar API as `[Buttons]` but will
 /// not have any affect until `[flush]` is called.
 #[derive(Clone, PartialEq)]
-pub struct Framebuffer<C = crate::color::RGB> {
+#[must_use]
+pub struct Framebuffer<C: Color = RGB> {
     /// A color for each Light on the tablet.
     /// The ordering is the same as [`Lights`].
     pub colors: [C; Lights::COUNT],
 }
 
-impl<C: Default + Copy> Default for Framebuffer<C> {
+impl<C: Color + Default> Default for Framebuffer<C> {
     fn default() -> Self {
         Framebuffer {
             colors: [C::default(); Lights::COUNT],
@@ -21,9 +27,8 @@ impl<C: Default + Copy> Default for Framebuffer<C> {
     }
 }
 
-impl<C: ColorExt> Framebuffer<C> {
+impl<C: Color> Framebuffer<C> {
     /// Create a new Framebuffer with all pixels set to OFF (Black).
-    #[must_use]
     pub fn new() -> Self {
         Self {
             colors: [C::OFF; Lights::COUNT],
@@ -34,7 +39,7 @@ impl<C: ColorExt> Framebuffer<C> {
     pub fn set_color<B: Into<Lights>>(&mut self, selection: B, color: C) {
         let selection = selection.into();
         for lights_idx in selection.indices() {
-            self.colors[lights_idx] = color.clone();
+            self.colors[lights_idx] = color;
         }
     }
 
@@ -50,22 +55,109 @@ impl<C: ColorExt> Framebuffer<C> {
     pub fn set_all_colors(&mut self, colors: &[C; Lights::COUNT]) {
         self.colors.clone_from(colors);
     }
-}
 
-impl<C: ColorExt<RGB8 = crate::color::RGB>> Framebuffer<C> {
-    // TODO(Ben Harris): Make the light flush behaviour here more explicit.
-    /// Flush the buffer's contents to lights.
+    /// Flush the buffer's contents to lights, blending according to alpha level (if applicable).
     pub fn flush(&self) {
-        MainFramebuffer::get().set_all_colors(&self.colors.clone().map(|c| c.to_rgb_u8()));
+        let lights = MainFramebuffer::get();
+
+        let colors = self.get_rgb_buffer_for_flush(lights);
+
+        lights.set_all_colors(&colors);
     }
 
+    /// Flush, and immediately clear the Framebuffer to avoid cumulative drawing when re-using it.
+    pub fn flush_and_clear(&mut self) {
+        self.flush();
+        self.clear();
+    }
+
+    /// Clear the framebuffer from all data to revert all lights to [`OFF`][crate::color::OFF] for future re-use.
+    /// Note : This function does not flush the buffer to the lights, but only clears the buffer data.
+    pub fn clear(&mut self) {
+        self.colors = [C::OFF; Lights::COUNT];
+    }
+
+    /// Blend `self` with `rhs`, using the same factor (`rhs_percent`) for each pixel.
+    pub fn blend_scalar(&self, rhs: &Self, rhs_percent: f32) -> Self {
+        let mut colors = [C::OFF; Lights::COUNT];
+        let mut i = 0;
+        while i < Lights::COUNT {
+            colors[i] = self.colors[i].blend(rhs.colors[i], rhs_percent);
+            i += 1;
+        }
+        Framebuffer { colors }
+    }
+
+    /// Dim `self` to `dim_percent`.
+    /// Passing a `dim_percent` value of `0.0` returns `self`, whereas a value of `1.0` returns a
+    /// blank/off buffer.
+    pub fn dim_scalar(&self, dim_percent: f32) -> Self {
+        let mut colors = [C::OFF; Lights::COUNT];
+        let mut i = 0;
+        while i < Lights::COUNT {
+            colors[i] = self.colors[i].blend(C::OFF, dim_percent);
+            i += 1;
+        }
+        Framebuffer { colors }
+    }
+
+    /// Blend `self` with `rhs`, using the corresponding item in `rhs_arr` to blend each pixel
+    /// independently.
+    ///
+    /// If you want to blend two [`Framebuffer<RGBA>`] together, see
+    /// [`alpha_blend`][Framebuffer<RGBA>::alpha_blend]
+    pub fn blend(&self, rhs: &Self, rhs_arr: [f32; Lights::COUNT]) -> Self {
+        let mut colors = [C::OFF; Lights::COUNT];
+        let mut i = 0;
+        while i < Lights::COUNT {
+            colors[i] = self.colors[i].blend(rhs.colors[i], rhs_arr[i]);
+            i += 1;
+        }
+        Framebuffer { colors }
+    }
+
+    /// Dim `self` to `dim_percent`, using the corresponding item in `dim_arr` for each pixel.
+    /// Passing a `dim_percent` value of `0.0` returns `self`, whereas a value of `1.0` returns a
+    /// blank/off buffer.
+    pub fn dim(&self, dim_arr: [f32; Lights::COUNT]) -> Self {
+        let mut colors = [C::OFF; Lights::COUNT];
+        let mut i = 0;
+        while i < Lights::COUNT {
+            colors[i] = self.colors[i].blend(C::OFF, dim_arr[i]);
+            i += 1;
+        }
+        Framebuffer { colors }
+    }
+
+    /// Apply `f` to each pixel in this buffer.
+    pub fn map<V: Color, F: FnMut(C) -> V>(&self, f: F) -> Framebuffer<V> {
+        Framebuffer {
+            colors: self.colors.map(f),
+        }
+    }
+
+    /// Blends the current light colors with this Framebuffer according to `self`'s alpha level.
+    fn get_rgb_buffer_for_flush(&self, lights: &MainFramebuffer) -> [RGB; Lights::COUNT] {
+        lights
+            .get_currently_set()
+            .blend(
+                &self.map(|c| *rgb::bytemuck::from_bytes::<RGB>(&rgb::bytemuck::bytes_of(&c)[..2])),
+                self.colors.map(|c| {
+                    // idx 3 will be `Some` for RGBA, and `None` for RGB.
+                    f32::from(*rgb::bytemuck::bytes_of(&c).get(3).unwrap_or(&255)) / 255.0
+                }),
+            )
+            .colors
+    }
+}
+
+impl Framebuffer<RGB> {
     /// Flush a framebuffer by only updating a given set of lights instead of the
     /// whole board.
     pub fn flush_with_mask(&self, mask: Lights) {
-        MainFramebuffer::get()
-            .set_colors_on_selection(mask, &self.colors.clone().map(|c| c.to_rgb_u8()));
+        MainFramebuffer::get().set_colors_on_selection(mask, &self.colors);
     }
-
+    ///
     /// Flush all lights that are any value besides `color::OFF`. All other lights
     /// will be left unchanged.
     ///
@@ -77,22 +169,10 @@ impl<C: ColorExt<RGB8 = crate::color::RGB>> Framebuffer<C> {
             self.colors
                 .iter()
                 .enumerate()
-                .filter(|&(_, c)| *c != C::OFF)
+                .filter(|&(_, c)| *c != crate::color::OFF)
                 .map(|(idx, _)| idx),
         );
         self.flush_with_mask(on_lights);
-    }
-
-    /// Clear the framebuffer from all data to revert all lights to `color::OFF` for future re-use.
-    /// Note : This function does not flush the buffer to the lights, but only clears the buffer data.
-    pub fn clear(&mut self) {
-        self.set_color(Lights::all(), C::OFF);
-    }
-
-    /// Flush, and immediately clear the Framebuffer to avoid cumulative drawing when re-using it.
-    pub fn flush_and_clear(&mut self) {
-        self.flush();
-        self.clear();
     }
 
     /// Flush a framebuffer by only updating a given set of lights instead of the
@@ -101,65 +181,94 @@ impl<C: ColorExt<RGB8 = crate::color::RGB>> Framebuffer<C> {
         self.flush_with_mask(mask);
         self.clear();
     }
+
+    /// Convert `self` to `Framebuffer<RGBA>`, using `a` as the alpha value for each pixel.
+    pub fn with_alpha(self, a: u8) -> Framebuffer<RGBA> {
+        Framebuffer {
+            colors: self.colors.map(|c| c.with_alpha(a)),
+        }
+    }
 }
 
-impl<C: ColorExt + Copy> ColorExt for Framebuffer<C>
-where
-    C::RGB8: Copy,
-{
-    type Percent = Framebuffer<C::Percent>;
-    type RGB8 = Framebuffer<C::RGB8>;
+impl Framebuffer<RGBA> {
+    /// Convert `self` to `Framebuffer<RGB>`, ignoring alpha values.
+    ///
+    /// If you want to convert to RGB without ignoring alpha, use [`dim_to_rgb`].
+    pub fn to_rgb(&self) -> Framebuffer<RGB> {
+        Framebuffer {
+            colors: self.colors.map(|c| c.rgb()),
+        }
+    }
 
-    const OFF: Self = Framebuffer {
-        colors: [C::OFF; Lights::COUNT],
-    };
+    /// Convert `self` to `Framebuffer<RGB>`, dimming values according to alpha level.
+    pub fn dim_to_rgb(&self) -> Framebuffer<RGB> {
+        Framebuffer {
+            colors: self.colors.map(|c| {
+                c.rgb()
+                    .map_colors(|comp| (f32::from(comp) * (f32::from(c.a) / 255.)) as u8)
+            }),
+        }
+    }
 
-    fn blend(self, rhs: Self, rhs_percent: Self::Percent) -> Self {
+    /// Blend `self` with `rhs`, using both buffers' alphas.
+    pub fn alpha_blend(&self, rhs: &Self) -> Self {
+        let mut lhs: [rgb::RGBA<f32>; Lights::COUNT] = self.colors.map(std::convert::Into::into);
+        let mut rhs: [rgb::RGBA<f32>; Lights::COUNT] = rhs.colors.map(std::convert::Into::into);
+        let mut temp_buffer = [rgb::RGBA::<f32>::default(); Lights::COUNT];
         let mut i = 0;
-        let mut colors = [C::default(); Lights::COUNT];
+
         while i < Lights::COUNT {
-            colors[i] = self.colors[i].blend(rhs.colors[i], rhs_percent.colors[i].clone());
+            lhs[i] = lhs[i].map(|c| c / 255.);
+            rhs[i] = rhs[i].map(|c| c / 255.);
             i += 1;
         }
-        Framebuffer { colors }
-    }
 
-    fn dim_to(self, percent: Self::Percent) -> Self {
-        self.blend(Self::default(), percent)
-    }
+        i = 0;
 
-    fn luminance(self) -> Self::Percent {
-        Framebuffer {
-            colors: self.colors.map(ColorExt::luminance),
+        while i < Lights::COUNT {
+            temp_buffer[i].a = 1. - (1. - lhs[i].a) * (1. - rhs[i].a);
+            i += 1;
         }
-    }
 
-    fn to_rgb_u8(&self) -> Self::RGB8 {
-        Framebuffer {
-            colors: self.colors.map(|c| c.to_rgb_u8()),
+        i = 0;
+
+        while i < Lights::COUNT {
+            let lhs_a = lhs[i].a;
+            let rhs_a = rhs[i].a;
+            let alpha_factor = lhs_a / rhs_a;
+            let alpha_factor2 = (1.0 - lhs_a) / rhs_a;
+
+            temp_buffer[i].r = lhs[i].r * alpha_factor + rhs[i].r * alpha_factor2;
+            temp_buffer[i].g = lhs[i].g * alpha_factor + rhs[i].g * alpha_factor2;
+            temp_buffer[i].b = lhs[i].b * alpha_factor + rhs[i].b * alpha_factor2;
+            i += 1;
         }
+
+        i = 0;
+
+        let mut out_buffer = [RGBA::OFF; Lights::COUNT];
+        while i < Lights::COUNT {
+            out_buffer[i] = temp_buffer[i].map(|c| (c * 255.) as u8);
+            i += 1;
+        }
+
+        Framebuffer { colors: out_buffer }
     }
 }
 
 macro_rules! impl_framebuffer_op {
     ($op:ident, $fn:ident) => {
-        impl<C: Clone + $op<C, Output = C>> $op<Framebuffer<C>> for Framebuffer<C> {
+        impl<C: Color + $op<C, Output = C>> $op<Framebuffer<C>> for Framebuffer<C> {
             type Output = Self;
             fn $fn(self, rhs: Framebuffer<C>) -> Self::Output {
-                let colors: [C; 40];
-                // Unsafe required here as we don't require `ColorExt` here, so `C` has no known default
-                // value.
-                // SAFETY: All array items are initialized before `assume_init` is called on any item.
-                unsafe {
-                    let mut colors_uninit =
-                        [const { std::mem::MaybeUninit::uninit() }; Lights::COUNT];
-                    let mut i = 0;
-                    while i < Lights::COUNT {
-                        colors_uninit[i].write(self.colors[i].clone().$fn(rhs.colors[i].clone()));
-                        i += 1;
-                    }
-                    colors = colors_uninit.map(|c| c.assume_init());
+                let mut colors = [C::OFF; Lights::COUNT];
+
+                let mut i = 0;
+                while i < Lights::COUNT {
+                    colors[i] = self.colors[i].$fn(rhs.colors[i]);
+                    i += 1;
                 }
+
                 Framebuffer { colors }
             }
         }

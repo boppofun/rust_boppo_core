@@ -97,16 +97,7 @@ pub fn brightness(color: RGB) -> f32 {
 }
 
 /// Extension trait for useful operations on colors.
-pub trait ColorExt: Clone + Default + PartialEq {
-    /// The type that will be used for percents for blending, dimming and luminance.
-    type Percent: Clone
-        + std::ops::Add<Self::Percent, Output = Self::Percent>
-        + std::ops::Mul<Self::Percent, Output = Self::Percent>
-        + std::ops::Div<Self::Percent, Output = Self::Percent>
-        + std::ops::Sub<Self::Percent, Output = Self::Percent>;
-    /// The 8-bit RGB representation of this type.
-    type RGB8;
-
+pub trait Color: Copy + Default + PartialEq + rgb::bytemuck::NoUninit {
     /// BLACK or OFF for this Color.
     const OFF: Self;
 
@@ -115,28 +106,22 @@ pub trait ColorExt: Clone + Default + PartialEq {
     /// `rhs_percent` 0.0 returns `self`, `rhs_percent` 1.0 returns `rhs`.
     /// Anything inbetween returns the weighted component average of `self` and `rhs`.
     #[must_use]
-    fn blend(self, rhs: Self, rhs_percent: Self::Percent) -> Self;
+    fn blend(self, rhs: Self, rhs_percent: f32) -> Self;
 
     /// Dim a color.
     ///
     /// `percent`: 0.0 is [`OFF`] and 1.0 is `color` unchanged.
     #[must_use]
-    fn dim_to(self, percent: Self::Percent) -> Self;
+    fn dim_to(self, percent: f32) -> Self;
 
     /// Luminance of this color, not accounting for how the human eye perceives color.
     ///
     /// `color::BLACK` has luminance 0.0, and `color::WHITE` has luminance 1.0
     #[must_use]
-    fn luminance(self) -> Self::Percent;
-
-    /// Convert this color to [`RGB`]
-    fn to_rgb_u8(&self) -> Self::RGB8;
+    fn luminance(self) -> f32;
 }
 
-impl ColorExt for RGB {
-    type Percent = f32;
-    type RGB8 = RGB;
-
+impl Color for RGB {
     const OFF: Self = OFF;
 
     fn blend(self, rhs: Self, rhs_percent: f32) -> Self {
@@ -150,16 +135,9 @@ impl ColorExt for RGB {
     fn luminance(self) -> f32 {
         brightness(self)
     }
-
-    fn to_rgb_u8(&self) -> Self::RGB8 {
-        *self
-    }
 }
 
-impl ColorExt for RGBA {
-    type Percent = f32;
-    type RGB8 = RGB;
-
+impl Color for RGBA {
     const OFF: Self = RGBA {
         r: 0,
         g: 0,
@@ -167,7 +145,7 @@ impl ColorExt for RGBA {
         a: 255,
     };
 
-    fn blend(self, rhs: Self, rhs_percent: Self::Percent) -> Self {
+    fn blend(self, rhs: Self, rhs_percent: f32) -> Self {
         self.rgb()
             .blend(rhs.rgb(), rhs_percent)
             .with_alpha(mix_component(self.a, rhs.a, rhs_percent))
@@ -180,15 +158,11 @@ impl ColorExt for RGBA {
         // RGBA { r, g, b, a }
     }
 
-    fn dim_to(self, percent: Self::Percent) -> Self {
+    fn dim_to(self, percent: f32) -> Self {
         self.blend(OFF.with_alpha(255), percent)
     }
 
-    fn luminance(self) -> Self::Percent {
+    fn luminance(self) -> f32 {
         self.rgb().luminance() * (f32::from(self.a) / 255.0)
-    }
-
-    fn to_rgb_u8(&self) -> Self::RGB8 {
-        self.rgb()
     }
 }
