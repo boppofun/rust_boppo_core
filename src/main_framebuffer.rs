@@ -178,7 +178,7 @@ impl std::fmt::Debug for MainFramebuffer {
 
 struct MainFramebufferInner {
     /// Do not call flush methods on this framebuffer
-    pub buffer: Framebuffer<RGB>,
+    pub buffer: Framebuffer,
     pub auto_flush: bool,
     pub hal: hal::SetAndFlushLights,
 }
