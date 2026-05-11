@@ -176,7 +176,7 @@ impl std::fmt::Debug for LightsSetter {
 
 struct LightsSettingInner {
     /// Do not call flush methods on this framebuffer
-    pub buffer: Framebuffer<RGB>,
+    pub buffer: Framebuffer,
     pub auto_flush: bool,
     pub hal: hal::SetAndFlushLights,
 }
