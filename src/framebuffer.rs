@@ -141,7 +141,7 @@ impl<C: Color> Framebuffer<C> {
         lights
             .get_currently_set()
             .blend(
-                &self.map(|c| *rgb::bytemuck::from_bytes::<RGB>(&rgb::bytemuck::bytes_of(&c)[..2])),
+                &self.map(|c| *rgb::bytemuck::from_bytes::<RGB>(&rgb::bytemuck::bytes_of(&c)[..3])),
                 self.colors.map(|c| {
                     // idx 3 will be `Some` for RGBA, and `None` for RGB.
                     f32::from(*rgb::bytemuck::bytes_of(&c).get(3).unwrap_or(&255)) / 255.0
