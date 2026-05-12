@@ -159,7 +159,12 @@ impl Color for RGBA {
     }
 
     fn dim_to(self, percent: f32) -> Self {
-        self.blend(OFF.with_alpha(255), percent)
+        Self {
+            r: self.r,
+            g: self.g,
+            b: self.b,
+            a: (self.a as f32 * percent) as u8,
+        }
     }
 
     fn luminance(self) -> f32 {
