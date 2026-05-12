@@ -126,27 +126,27 @@ impl Buttons {
 
     /// Returns the number of buttons in this selection.
     #[must_use]
-    pub fn len(&self) -> u32 {
+    pub const fn len(&self) -> u32 {
         self.bits.count_ones()
     }
 
     /// Returns `true` if no buttons are selected.
     #[must_use]
-    pub fn is_empty(&self) -> bool {
+    pub const fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
     /// Returns `true` if this selection contains `button`.
     #[must_use]
-    pub fn contains(&self, button: Button) -> bool {
-        self.is_superset(button.into())
+    pub const fn contains(&self, button: Button) -> bool {
+        self.is_superset(button.to_buttons())
     }
 
     /// Returns `true` if `other` selects only buttons that `self` selects.
     ///
     /// See also [`Buttons::is_subset`]
     #[must_use]
-    pub fn is_superset(&self, other: Self) -> bool {
+    pub const fn is_superset(&self, other: Self) -> bool {
         (self.bits | other.bits) == self.bits
     }
 
@@ -154,13 +154,13 @@ impl Buttons {
     ///
     /// See also [`Buttons::is_superset`]
     #[must_use]
-    pub fn is_subset(&self, other: Self) -> bool {
+    pub const fn is_subset(&self, other: Self) -> bool {
         other.is_superset(*self)
     }
 
     /// Returns a double-ended iterator over the indices of every [`Button`] in this selection.
     #[must_use]
-    pub fn indices(&self) -> impl DoubleEndedIterator<Item = usize> + use<> {
+    pub const fn indices(&self) -> impl DoubleEndedIterator<Item = usize> + use<> {
         Indices { bits: self.bits }
     }
 
@@ -172,7 +172,7 @@ impl Buttons {
 
     /// Returns the inversion of the current selection.
     #[must_use]
-    pub fn invert(&self) -> Buttons {
+    pub const fn invert(&self) -> Buttons {
         Buttons {
             bits: (!self.bits) & Buttons::all().bits,
         }
@@ -200,7 +200,7 @@ impl Buttons {
     /// Return the Buttons as if the device was rotate 180 degrees.
     /// Button 1 becomes 10, 2 becomes 9... 5 becomes 6 and vise versa.
     #[must_use]
-    pub fn rotate_180(&self) -> Buttons {
+    pub const fn rotate_180(&self) -> Buttons {
         Buttons::from_bitset(self.bits.reverse_bits() >> 6)
     }
 
