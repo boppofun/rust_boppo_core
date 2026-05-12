@@ -109,13 +109,13 @@ impl Lights {
 
     /// Returns the number of lights in this selection.
     #[must_use]
-    pub fn len(&self) -> u32 {
+    pub const fn len(&self) -> u32 {
         self.bits.count_ones()
     }
 
     /// Returns `true` if no lights are selected.
     #[must_use]
-    pub fn is_empty(&self) -> bool {
+    pub const fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
@@ -123,7 +123,7 @@ impl Lights {
     ///
     /// See also [`Lights::is_subset`]
     #[must_use]
-    pub fn is_superset(&self, other: Self) -> bool {
+    pub const fn is_superset(&self, other: Self) -> bool {
         (self.bits | other.bits) == self.bits
     }
 
@@ -131,13 +131,13 @@ impl Lights {
     ///
     /// See also [`Lights::is_superset`]
     #[must_use]
-    pub fn is_subset(&self, other: Self) -> bool {
+    pub const fn is_subset(&self, other: Self) -> bool {
         other.is_superset(*self)
     }
 
     /// Returns a double-ended iterator over the indices of every [`Button`] in this selection.
     #[must_use]
-    pub fn indices(&self) -> impl DoubleEndedIterator<Item = usize> + use<> {
+    pub const fn indices(&self) -> impl DoubleEndedIterator<Item = usize> + use<> {
         Indices { bits: self.bits }
     }
 
@@ -164,7 +164,7 @@ impl Lights {
     /// Return the Lights as if the device was rotate 180 degrees.
     /// Light 0 becomes 39, 1 becomes 38...
     #[must_use]
-    pub fn rotate_180(&self) -> Lights {
+    pub const fn rotate_180(&self) -> Lights {
         Lights::from_bitset(self.bits.reverse_bits() >> 24)
     }
 
@@ -329,7 +329,7 @@ pub enum LightDir {
 impl LightDir {
     /// Returns all four [`LightDir`] variants, ordered clockwise starting at [`LightDir::Top`].
     #[must_use]
-    pub fn all_clockwise_from_top() -> &'static [Self] {
+    pub const fn all_clockwise_from_top() -> &'static [Self] {
         &[
             LightDir::Top,
             LightDir::Right,
@@ -340,7 +340,7 @@ impl LightDir {
 
     /// Returns the next [`LightDir`] clockwise from `self`.
     #[must_use]
-    pub fn clockwise(self) -> Self {
+    pub const fn clockwise(self) -> Self {
         match self {
             LightDir::Top => LightDir::Right,
             LightDir::Left => LightDir::Top,
@@ -351,7 +351,7 @@ impl LightDir {
 
     /// Returns the next [`LightDir`] counter-clockwise from `self`.
     #[must_use]
-    pub fn counter_clockwise(self) -> Self {
+    pub const fn counter_clockwise(self) -> Self {
         match self {
             LightDir::Top => LightDir::Left,
             LightDir::Left => LightDir::Bottom,
@@ -363,7 +363,7 @@ impl LightDir {
     /// Returns [`Some`] if `idx < 4`, [`None`] otherwise. Converts `idx` to the corresponding
     /// [`LightDir`] variant.
     #[must_use]
-    pub fn from_index(idx: usize) -> Option<Self> {
+    pub const fn from_index(idx: usize) -> Option<Self> {
         match idx {
             0 => Some(LightDir::Top),
             1 => Some(LightDir::Left),
