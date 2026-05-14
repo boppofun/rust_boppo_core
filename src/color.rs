@@ -6,6 +6,7 @@
 //! the buttons' natural coloring is grey.
 
 pub use rgb;
+use rgb::ComponentMap;
 pub use rgb::RGB8 as RGB;
 pub use rgb::RGBA8 as RGBA;
 
@@ -145,4 +146,26 @@ impl Color for RGBA {
         let magnitude = color[..3].iter().map(|c| c * c).sum::<f32>().sqrt();
         magnitude / MAX_MAGNITUDE_SQUARED.sqrt() * (color[3] / 255.0)
     }
+}
+
+/// Blends two [`RGBA`] together according to their alpha value, returning the result.
+#[must_use]
+#[expect(
+    clippy::cast_sign_loss,
+    clippy::cast_possible_truncation,
+    reason = "Result is never signed, or above 255"
+)]
+pub fn alpha_blend(lhs: RGBA, rhs: RGBA) -> RGBA {
+    let lhs = lhs.map(|c| f32::from(c) / 255.);
+    let rhs = rhs.map(|c| f32::from(c) / 255.);
+    let alpha_factor = lhs.a / rhs.a;
+    let alpha_factor2 = (1.0 - lhs.a) / rhs.a;
+
+    rgb::RGBA::<f32>::new(
+        lhs.r * alpha_factor + rhs.r * alpha_factor2,
+        lhs.g * alpha_factor + rhs.g * alpha_factor2,
+        lhs.b * alpha_factor + rhs.b * alpha_factor2,
+        1. - (1. - lhs.a) * (1. - rhs.a),
+    )
+    .map(|c| (c * 255.) as u8)
 }
