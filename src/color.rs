@@ -133,11 +133,16 @@ impl Color for RGBA {
             r: self.r,
             g: self.g,
             b: self.b,
-            a: (self.a as f32 * percent) as u8,
+            a: mix_component(self.a, 0, percent),
         }
     }
 
     fn luminance(self) -> f32 {
-        self.rgb().luminance() * (f32::from(self.a) / 255.0)
+        const MAX_MAGNITUDE_SQUARED: f32 = 255.0 * 255.0 * 3.0;
+
+        let color_u8: [u8; 4] = rgb::bytemuck::bytes_of(&self).try_into().unwrap();
+        let color = color_u8.map(f32::from);
+        let magnitude = color[..3].iter().map(|c| c * c).sum::<f32>().sqrt();
+        magnitude / MAX_MAGNITUDE_SQUARED.sqrt() * (color[3] / 255.0)
     }
 }
