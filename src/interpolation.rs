@@ -1,5 +1,5 @@
 //! Utilities for interpolation between two values.
-use crate::color;
+use crate::color::{self, Color};
 
 /// A type that can be interpolated between two values (e.g. blended or transitioned)
 pub trait Interpolatable {
@@ -15,7 +15,7 @@ impl Interpolatable for f32 {
 
 impl Interpolatable for color::RGB {
     fn interpolate(percent: f32, a: &Self, b: &Self) -> Self {
-        color::blend(*a, *b, percent)
+        a.weighted_average(*b, percent)
     }
 }
 

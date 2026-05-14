@@ -16,7 +16,7 @@
 //! * [`Button::B9`] (bottom right) is at coordinates (4,-1).
 
 use crate::Framebuffer;
-use crate::{Button, LightDir, Lights, color};
+use crate::{Button, LightDir, Lights, color::Color};
 
 mod coordinates;
 
@@ -27,12 +27,12 @@ pub use {coordinates::BUTTON_LOCATIONS, coordinates::LIGHT_LOCATIONS};
 /// Coordinates are defined in the module documentation.
 ///
 /// Frame buffer needs to be flushed for lights to be updated.
-pub fn draw_light_circle_with_mask(
-    c: color::RGB,
+pub fn draw_light_circle_with_mask<C: Color>(
+    c: C,
     x: f32,
     y: f32,
     radius: f32,
-    fb: &mut Framebuffer,
+    fb: &mut Framebuffer<C>,
     mask: Lights,
 ) {
     const FALL_OFF_DISTANCE: f32 = 0.7;
@@ -52,7 +52,7 @@ pub fn draw_light_circle_with_mask(
             } else {
                 1. - ((relative_dist - FALL_OFF_DISTANCE) / (1.0 - FALL_OFF_DISTANCE))
             };
-            let this_color = color::dim_to(c, percent_colored);
+            let this_color = c.dim_to(percent_colored);
             fb.set_color(Lights::from_index(idx), this_color);
         }
     }
@@ -65,12 +65,12 @@ pub fn draw_light_circle_with_mask(
 /// Draws a `c`-colored, radius `radius`, circle at `x, y` onto `fb`, ignoring any lights not
 /// selected by `mask`.
 /// Does not flush `fb`.
-pub fn draw_light_circle_no_fall_off(
-    c: color::RGB,
+pub fn draw_light_circle_no_fall_off<C: Color>(
+    c: C,
     x: f32,
     y: f32,
     radius: f32,
-    fb: &mut Framebuffer,
+    fb: &mut Framebuffer<C>,
     mask: Lights,
 ) {
     let dist_within_squared = radius * radius;
@@ -93,13 +93,13 @@ pub fn draw_light_circle_no_fall_off(
 /// Coordinates are defined in the module documentation.
 ///
 /// Frame buffer needs to be flushed for lights to be updated.
-pub fn draw_light_rectangle_with_mask(
-    color: color::RGB,
+pub fn draw_light_rectangle_with_mask<C: Color>(
+    color: C,
     x: f32,
     y: f32,
     width: f32,
     height: f32,
-    fb: &mut Framebuffer,
+    fb: &mut Framebuffer<C>,
     mask: Lights,
 ) {
     for idx in mask.indices() {
@@ -107,7 +107,7 @@ pub fn draw_light_rectangle_with_mask(
         let (l_x, l_y) = coordinates_for_light_index(idx);
         let distance_to_nearest_border = distance_within_rectangle(l_x, l_y, x, y, width, height);
         let alpha = (distance_to_nearest_border / FALL_OFF_DISTANCE).clamp(0., 1.);
-        fb.set_color(Lights::from_index(idx), color::dim_to(color, alpha));
+        fb.set_color(Lights::from_index(idx), color.dim_to(alpha));
     }
 }
 
@@ -116,7 +116,7 @@ pub fn draw_light_rectangle_with_mask(
 /// Coordinates are defined in the module documentation.
 ///
 /// Frame buffer needs to be flushed for lights to be updated.
-pub fn draw_light_circle(c: color::RGB, x: f32, y: f32, radius: f32, fb: &mut Framebuffer) {
+pub fn draw_light_circle<C: Color>(c: C, x: f32, y: f32, radius: f32, fb: &mut Framebuffer<C>) {
     draw_light_circle_with_mask(c, x, y, radius, fb, Lights::all());
 }
 
@@ -127,13 +127,13 @@ pub fn draw_light_circle(c: color::RGB, x: f32, y: f32, radius: f32, fb: &mut Fr
 /// Coordinates are defined in the module documentation.
 ///
 /// Frame buffer needs to be flushed for lights to be updated.
-pub fn draw_light_rectangle(
-    color: color::RGB,
+pub fn draw_light_rectangle<C: Color>(
+    color: C,
     x: f32,
     y: f32,
     width: f32,
     height: f32,
-    fb: &mut Framebuffer,
+    fb: &mut Framebuffer<C>,
 ) {
     draw_light_rectangle_with_mask(color, x, y, width, height, fb, Lights::all());
 }
