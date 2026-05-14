@@ -53,19 +53,6 @@ pub const TEAL: RGB = RGB::new(0, 127, 127);
 /// #FF7085
 pub const PINK: RGB = RGB::new(255, 112, 133);
 
-/// Blend two colors.
-///
-/// `percent` 0.0 returns `c1`, percent 1.0 returns `c2`.
-/// Anything inbetween returns the weighted component average of `c1` and `c2`.
-#[must_use]
-pub const fn blend(c1: RGB, c2: RGB, percent_second: f32) -> RGB {
-    RGB {
-        r: mix_component(c1.r, c2.r, percent_second),
-        g: mix_component(c1.g, c2.g, percent_second),
-        b: mix_component(c1.b, c2.b, percent_second),
-    }
-}
-
 #[allow(
     clippy::cast_possible_truncation,
     clippy::cast_sign_loss,
@@ -77,36 +64,17 @@ const fn mix_component(a: u8, b: u8, percent_second: f32) -> u8 {
         .saturating_add((b as f32 * percent_second).round() as u8)
 }
 
-/// Dim a color.
-///
-/// `percent`: 0.0 is OFF and 1.0 is `color` unchanged.
-#[must_use]
-pub const fn dim_to(color: RGB, percent: f32) -> RGB {
-    blend(OFF, color, percent)
-}
-
-/// Brightness of a color.
-///
-/// `color::BLACK` has brightness 0.0, and `color::WHITE` has brightness 1.0
-// A perceived brightness function might be useful too.
-#[must_use]
-pub fn brightness(color: RGB) -> f32 {
-    let (r, g, b) = (f32::from(color.r), f32::from(color.g), f32::from(color.b));
-    let magnitude = (r * r + g * g + b * b).sqrt();
-    magnitude / 441.67296
-}
-
 /// Extension trait for useful operations on colors.
 pub trait Color: Copy + Default + PartialEq + rgb::bytemuck::NoUninit {
     /// BLACK or OFF for this Color.
     const OFF: Self;
 
-    /// Blend two colors.
+    /// Weighted component average of two colors.
     ///
     /// `rhs_percent` 0.0 returns `self`, `rhs_percent` 1.0 returns `rhs`.
     /// Anything inbetween returns the weighted component average of `self` and `rhs`.
     #[must_use]
-    fn blend(self, rhs: Self, rhs_percent: f32) -> Self;
+    fn weighted_average(self, rhs: Self, rhs_percent: f32) -> Self;
 
     /// Dim a color.
     ///
@@ -124,16 +92,22 @@ pub trait Color: Copy + Default + PartialEq + rgb::bytemuck::NoUninit {
 impl Color for RGB {
     const OFF: Self = OFF;
 
-    fn blend(self, rhs: Self, rhs_percent: f32) -> Self {
-        blend(self, rhs, rhs_percent)
+    fn weighted_average(self, rhs: Self, rhs_percent: f32) -> Self {
+        RGB {
+            r: mix_component(self.r, rhs.r, rhs_percent),
+            g: mix_component(self.g, rhs.g, rhs_percent),
+            b: mix_component(self.b, rhs.b, rhs_percent),
+        }
     }
 
     fn dim_to(self, percent: f32) -> Self {
-        dim_to(self, percent)
+        self.weighted_average(Self::OFF, percent)
     }
 
     fn luminance(self) -> f32 {
-        brightness(self)
+        let (r, g, b) = (f32::from(self.r), f32::from(self.g), f32::from(self.b));
+        let magnitude = (r * r + g * g + b * b).sqrt();
+        magnitude / 441.67296
     }
 }
 
@@ -145,17 +119,13 @@ impl Color for RGBA {
         a: 255,
     };
 
-    fn blend(self, rhs: Self, rhs_percent: f32) -> Self {
-        self.rgb()
-            .blend(rhs.rgb(), rhs_percent)
-            .with_alpha(mix_component(self.a, rhs.a, rhs_percent))
-        // let [lhs, rhs] = [self, rhs].map(|c| c.map(|comp| f32::from(comp) / 255.0));
-        //
-        // let a = 1.0 - (1.0 - lhs.a) * (1.0 - rhs.a);
-        // let [r, g, b] = [(lhs.r, rhs.r), (lhs.g, rhs.g), (lhs.b, rhs.b)]
-        //     .map(|(a, b)| a * lhs.a / rhs.a + b * (1.0 - lhs.a) / rhs.a);
-        // let [r, g, b, a] = [r, g, b, a].map(|c| (c * 255.) as u8);
-        // RGBA { r, g, b, a }
+    fn weighted_average(self, rhs: Self, rhs_percent: f32) -> Self {
+        RGBA {
+            r: mix_component(self.r, rhs.r, rhs_percent),
+            g: mix_component(self.g, rhs.g, rhs_percent),
+            b: mix_component(self.b, rhs.b, rhs_percent),
+            a: mix_component(self.a, rhs.a, rhs_percent),
+        }
     }
 
     fn dim_to(self, percent: f32) -> Self {

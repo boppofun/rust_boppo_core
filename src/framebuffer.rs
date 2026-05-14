@@ -82,7 +82,7 @@ impl<C: Color> Framebuffer<C> {
         let mut colors = [C::OFF; Lights::COUNT];
         let mut i = 0;
         while i < Lights::COUNT {
-            colors[i] = self.colors[i].blend(rhs.colors[i], rhs_percent);
+            colors[i] = self.colors[i].weighted_average(rhs.colors[i], rhs_percent);
             i += 1;
         }
         Framebuffer { colors }
@@ -95,22 +95,22 @@ impl<C: Color> Framebuffer<C> {
         let mut colors = [C::OFF; Lights::COUNT];
         let mut i = 0;
         while i < Lights::COUNT {
-            colors[i] = self.colors[i].blend(C::OFF, dim_percent);
+            colors[i] = self.colors[i].dim_to(dim_percent);
             i += 1;
         }
         Framebuffer { colors }
     }
 
-    /// Blend `self` with `rhs`, using the corresponding item in `rhs_arr` to blend each pixel
+    /// Weighted average of `self` with `rhs`, using the corresponding item in `rhs_arr` to weight each pixel
     /// independently.
     ///
     /// If you want to blend two [`Framebuffer<RGBA>`] together, see
     /// [`alpha_blend`][Framebuffer<RGBA>::alpha_blend]
-    pub fn blend(&self, rhs: &Self, rhs_arr: [f32; Lights::COUNT]) -> Self {
+    pub fn weighted_average(&self, rhs: &Self, rhs_arr: [f32; Lights::COUNT]) -> Self {
         let mut colors = [C::OFF; Lights::COUNT];
         let mut i = 0;
         while i < Lights::COUNT {
-            colors[i] = self.colors[i].blend(rhs.colors[i], rhs_arr[i]);
+            colors[i] = self.colors[i].weighted_average(rhs.colors[i], rhs_arr[i]);
             i += 1;
         }
         Framebuffer { colors }
@@ -123,7 +123,7 @@ impl<C: Color> Framebuffer<C> {
         let mut colors = [C::OFF; Lights::COUNT];
         let mut i = 0;
         while i < Lights::COUNT {
-            colors[i] = self.colors[i].blend(C::OFF, dim_arr[i]);
+            colors[i] = self.colors[i].dim_to(dim_arr[i]);
             i += 1;
         }
         Framebuffer { colors }
@@ -140,7 +140,7 @@ impl<C: Color> Framebuffer<C> {
     fn get_rgb_buffer_for_flush(&self, lights: &LightsSetter) -> [RGB; Lights::COUNT] {
         lights
             .get_currently_set()
-            .blend(
+            .weighted_average(
                 &self.map(|c| *rgb::bytemuck::from_bytes::<RGB>(&rgb::bytemuck::bytes_of(&c)[..3])),
                 self.colors.map(|c| {
                     // idx 3 will be `Some` for RGBA, and `None` for RGB.
