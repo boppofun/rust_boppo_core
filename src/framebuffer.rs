@@ -67,8 +67,11 @@ impl<C: Color> Framebuffer<C> {
 
     /// Flush, and immediately clear the Framebuffer to avoid cumulative drawing when re-using it.
     pub fn flush_and_clear(&mut self) {
-        self.flush();
-        self.clear();
+        let lights = LightsSetter::get();
+
+        let colors = self.get_rgb_buffer_for_flush(lights);
+
+        lights.set_all_colors(&colors);
     }
 
     /// Clear the framebuffer from all data to revert all lights to [`OFF`][crate::color::OFF] for future re-use.
@@ -144,6 +147,23 @@ impl<C: Color> Framebuffer<C> {
 }
 
 impl Framebuffer<RGB> {
+    /// Flush this buffer to lights, blending with the current state according to `blend_fn`.
+    /// `blend_fn` is passed the light index, the current light color, and this buffer's light
+    /// color, in that order.
+    pub fn flush_blend<W: Fn(usize, RGB, RGB) -> RGB>(&self, blend_fn: W) {
+        let lights = LightsSetter::get();
+
+        let current = lights.get_currently_set();
+
+        let _guard = lights.pause_auto_flush();
+        for i in 0..Lights::COUNT {
+            lights.set_color(
+                Lights::from_index(i),
+                blend_fn(i, current.colors[i], self.colors[i]),
+            );
+        }
+    }
+
     /// Convert `self` to `Framebuffer<RGBA>`, using `a` as the alpha value for each pixel.
     pub fn with_alpha(self, a: u8) -> Framebuffer<RGBA> {
         Framebuffer {
@@ -153,6 +173,23 @@ impl Framebuffer<RGB> {
 }
 
 impl Framebuffer<RGBA> {
+    /// Flush this buffer to lights, blending with the current state according to `blend_fn`.
+    /// `blend_fn` is passed the light index, the current light color, and this buffer's light
+    /// color, in that order.
+    pub fn flush_blend<W: Fn(usize, RGB, RGBA) -> RGB>(&self, blend_fn: W) {
+        let lights = LightsSetter::get();
+
+        let current = lights.get_currently_set();
+
+        let _guard = lights.pause_auto_flush();
+        for i in 0..Lights::COUNT {
+            lights.set_color(
+                Lights::from_index(i),
+                blend_fn(i, current.colors[i], self.colors[i]),
+            );
+        }
+    }
+
     /// Flush the buffer's contents to lights, ignoring alpha level.
     pub fn flush_no_alpha(&self) {
         self.to_rgb().flush();
