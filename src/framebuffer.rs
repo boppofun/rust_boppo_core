@@ -67,8 +67,11 @@ impl<C: Color> Framebuffer<C> {
 
     /// Flush, and immediately clear the Framebuffer to avoid cumulative drawing when re-using it.
     pub fn flush_and_clear(&mut self) {
-        self.flush();
-        self.clear();
+        let lights = MainFramebuffer::get();
+
+        let colors = self.get_rgb_buffer_for_flush(lights);
+
+        lights.set_all_colors(&colors);
     }
 
     /// Clear the framebuffer from all data to revert all lights to [`OFF`][crate::color::OFF] for future re-use.
@@ -144,34 +147,21 @@ impl<C: Color> Framebuffer<C> {
 }
 
 impl Framebuffer<RGB> {
-    /// Flush a framebuffer by only updating a given set of lights instead of the
-    /// whole board.
-    pub fn flush_with_mask(&self, mask: Lights) {
-        MainFramebuffer::get().set_colors_on_selection(mask, &self.colors);
-    }
-    ///
-    /// Flush all lights that are any value besides `color::OFF`. All other lights
-    /// will be left unchanged.
-    ///
-    // TODO: this should probably be removed when we get a framebuffer that has
-    // alpha channel support which flushes according to alpha level. This
-    // work around does not work for painting "black" (aka off).
-    pub fn flush_on_colors(&self) {
-        let on_lights = Lights::from_indices(
-            self.colors
-                .iter()
-                .enumerate()
-                .filter(|&(_, c)| *c != crate::color::OFF)
-                .map(|(idx, _)| idx),
-        );
-        self.flush_with_mask(on_lights);
-    }
+    /// Flush this buffer to lights, blending with the current state according to `blend_fn`.
+    /// `blend_fn` is passed the light index, the current light color, and this buffer's light
+    /// color, in that order.
+    pub fn flush_blend<W: Fn(usize, RGB, RGB) -> RGB>(&self, blend_fn: W) {
+        let lights = MainFramebuffer::get();
 
-    /// Flush a framebuffer by only updating a given set of lights instead of the
-    /// whole board, then immediately clear its underlying data for non-cumulative re-use.
-    pub fn flush_with_mask_and_clear(&mut self, mask: Lights) {
-        self.flush_with_mask(mask);
-        self.clear();
+        let current = lights.get_currently_set();
+
+        let _guard = lights.pause_auto_flush();
+        for i in 0..Lights::COUNT {
+            lights.set_color(
+                Lights::from_index(i),
+                blend_fn(i, current.colors[i], self.colors[i]),
+            );
+        }
     }
 
     /// Convert `self` to `Framebuffer<RGBA>`, using `a` as the alpha value for each pixel.
@@ -183,6 +173,23 @@ impl Framebuffer<RGB> {
 }
 
 impl Framebuffer<RGBA> {
+    /// Flush this buffer to lights, blending with the current state according to `blend_fn`.
+    /// `blend_fn` is passed the light index, the current light color, and this buffer's light
+    /// color, in that order.
+    pub fn flush_blend<W: Fn(usize, RGB, RGBA) -> RGB>(&self, blend_fn: W) {
+        let lights = MainFramebuffer::get();
+
+        let current = lights.get_currently_set();
+
+        let _guard = lights.pause_auto_flush();
+        for i in 0..Lights::COUNT {
+            lights.set_color(
+                Lights::from_index(i),
+                blend_fn(i, current.colors[i], self.colors[i]),
+            );
+        }
+    }
+
     /// Flush the buffer's contents to lights, ignoring alpha level.
     pub fn flush_no_alpha(&self) {
         self.to_rgb().flush();
