@@ -7,39 +7,41 @@ use crate::hal::SetAndFlushLights;
 use std::sync::Arc;
 use std::sync::Mutex;
 
-/// Low level control over setting the color of lights.
+/// The colors that are displaying on the button lights or will be displayed
+/// after the next flush. All light color changes in this crate go through
+/// this Framebuffer.
 ///
 /// By default lights changes are immediately flushed to the hardware when
-/// [`set_color`][`LightsSetter::set_color`] or similar functions are called
+/// [`set_color`][`MainFramebuffer::set_color`] or similar functions are called
 /// throughout this crate. Automatic flushing can be disabled via
-/// [`pause_auto_flush`][`LightsSetter::pause_auto_flush`] and
-/// [`set_auto_flush`][`LightsSetter::set_auto_flush`].
+/// [`pause_auto_flush`][`MainFramebuffer::pause_auto_flush`] and
+/// [`set_auto_flush`][`MainFramebuffer::set_auto_flush`].
 ///
-/// Get a reference to the global instance using [`LightsSetter::get()`].
+/// Get a reference to the global instance using [`MainFramebuffer::get()`].
 #[derive(Clone)]
-pub struct LightsSetter {
+pub struct MainFramebuffer {
     inner: Arc<Mutex<LightsSettingInner>>,
 }
 
-impl LightsSetter {
-    /// Returns a reference to the global [`LightsSetter`].
+impl MainFramebuffer {
+    /// Returns a reference to the global [`MainFramebuffer`].
     ///
     /// # Panics
     ///
     /// This function only panics if this library was not initialized properly.
-    pub fn get() -> &'static LightsSetter {
+    pub fn get() -> &'static MainFramebuffer {
         crate::hal::LIGHTS.get().unwrap()
     }
 
     #[doc(hidden)]
-    pub fn new(hal: SetAndFlushLights) -> LightsSetter {
+    pub fn new(hal: SetAndFlushLights) -> MainFramebuffer {
         let inner = LightsSettingInner {
             hal,
             buffer: Framebuffer::new(),
             auto_flush: true,
         };
         let inner = Arc::new(Mutex::new(inner));
-        LightsSetter { inner }
+        MainFramebuffer { inner }
     }
 
     /// Sets the color of the specified lights to the given color.
@@ -168,7 +170,7 @@ impl LightsSetter {
     }
 }
 
-impl std::fmt::Debug for LightsSetter {
+impl std::fmt::Debug for MainFramebuffer {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Lights").finish()
     }
@@ -189,7 +191,7 @@ impl LightsSettingInner {
 
 /// Pauses auto flushing until the guard is dropped.
 pub struct PauseAutoFlushGuard {
-    lights_setter: LightsSetter,
+    lights_setter: MainFramebuffer,
     should_reenable: bool,
 }
 

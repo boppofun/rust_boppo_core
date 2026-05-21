@@ -1,5 +1,5 @@
 //! Provides the [`Updatable`] trait and types and functions for working with [`Updatable`s][Updatable].
-use crate::{Lights, LightsSetter, color};
+use crate::{Lights, MainFramebuffer, color};
 
 use embassy_time::{Instant, Timer};
 
@@ -94,10 +94,10 @@ pub async fn run_with_opts(
             Timer::after(sleep_time).await;
         }
 
-        let _flush_guard = LightsSetter::get().pause_auto_flush();
+        let _flush_guard = MainFramebuffer::get().pause_auto_flush();
 
         if clear_lights_each_frame {
-            LightsSetter::get().set_color(Lights::all(), color::OFF);
+            MainFramebuffer::get().set_color(Lights::all(), color::OFF);
         }
 
         // Immediately update the update_start instant to start tracking the next update cycle time

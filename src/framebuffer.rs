@@ -1,4 +1,4 @@
-use crate::{Buttons, Lights, LightsSetter, color};
+use crate::{Buttons, Lights, MainFramebuffer, color};
 
 /// On "off-screen" buffer storing a color for each light on the tablet.
 ///
@@ -54,13 +54,13 @@ impl Framebuffer {
     // TODO(Ben Harris): Make the light flush behaviour here more explicit.
     /// Flush the buffer's contents to lights.
     pub fn flush(&self) {
-        LightsSetter::get().set_all_colors(&self.colors);
+        MainFramebuffer::get().set_all_colors(&self.colors);
     }
 
     /// Flush a framebuffer by only updating a given set of lights instead of the
     /// whole board.
     pub fn flush_with_mask(&self, mask: Lights) {
-        LightsSetter::get().set_colors_on_selection(mask, &self.colors);
+        MainFramebuffer::get().set_colors_on_selection(mask, &self.colors);
     }
 
     /// Flush all lights that are any value besides `color::OFF`. All other lights

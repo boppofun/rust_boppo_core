@@ -212,7 +212,7 @@ impl Buttons {
 
     /// Set [`self's`][`crate::Button`] lights to [`color`][`crate::color`].
     pub fn set_color(self, color: crate::color::RGB) {
-        crate::LightsSetter::get().set_color(self.into(), color);
+        crate::MainFramebuffer::get().set_color(self.into(), color);
     }
 
     /// Set [`self's`][`crate::Button`] lights to [`color::OFF`][`crate::color::OFF`].

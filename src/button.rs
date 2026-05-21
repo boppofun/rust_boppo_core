@@ -239,7 +239,7 @@ impl Button {
     /// This function sets the lights immediately, if you want to modify many lights' or buttons'
     /// colors at once, consider using [`Framebuffer`][crate::Framebuffer].
     pub fn set_color(self, color: crate::color::RGB) {
-        crate::LightsSetter::get().set_color(self.into(), color);
+        crate::MainFramebuffer::get().set_color(self.into(), color);
     }
 
     /// Sets this button's lights to [`color::OFF`][crate::color::OFF]. Shorthand for

@@ -9,20 +9,20 @@ use std::sync::atomic::AtomicPtr;
 
 use crate::{LanguageTag, Lights};
 
-pub(super) static LIGHTS: std::sync::OnceLock<crate::lights_setter::LightsSetter> =
+pub(super) static LIGHTS: std::sync::OnceLock<crate::main_framebuffer::MainFramebuffer> =
     std::sync::OnceLock::new();
 
 pub type SetAndFlushLights = fn(&[crate::color::RGB; Lights::COUNT]);
 
 /// Initializes `LIGHTS` with `L`. Should only be called once, during device initialization.
-/// See [`LightsSetter`][crate::LightsSetter].
+/// See [`MainFramebuffer`][crate::MainFramebuffer].
 ///
 /// # Panics
 ///
 /// This function will panic if it is called after `LIGHTS` has been initialized.
 pub fn set_lights(lights: SetAndFlushLights) {
     LIGHTS
-        .set(crate::lights_setter::LightsSetter::new(lights))
+        .set(crate::main_framebuffer::MainFramebuffer::new(lights))
         .unwrap();
 }
 

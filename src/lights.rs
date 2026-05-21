@@ -1,6 +1,6 @@
 use rand::prelude::IteratorRandom;
 
-use crate::{Buttons, LightsSetter};
+use crate::{Buttons, MainFramebuffer};
 
 use super::button::Button;
 use std::convert::TryInto;
@@ -176,13 +176,13 @@ impl Lights {
 
     /// Sets all lights in this selection to `color`
     pub fn set_color(self, color: crate::color::RGB) {
-        LightsSetter::get().set_color(self, color);
+        MainFramebuffer::get().set_color(self, color);
     }
 
     /// Sets each light in this selection to the corresponding color in `colors`, up to exhaustion
     /// of either the selection or `colors`.
     pub fn set_colors(self, colors: &[crate::color::RGB]) {
-        LightsSetter::get().set_colors_on(self, colors);
+        MainFramebuffer::get().set_colors_on(self, colors);
     }
 
     /// Returns a new [`Lights`] with only the lights in the `dir` direction from this selection.

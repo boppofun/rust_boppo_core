@@ -11,7 +11,7 @@
 //!
 //! By default all changes are immediately flushed to the hardware. If you want
 //! to make multiple changes in a row and performance matters you can use
-//! [`Framebuffer`] or modify the auto flush behavior using [`LightsSetter`].
+//! [`Framebuffer`] or modify the auto flush behavior using [`MainFramebuffer`].
 //!
 //! Each Boppo button has 4 LED lights which are represented by [`LightDir`].
 //!
@@ -56,7 +56,7 @@ mod easings;
 mod framebuffer;
 mod language;
 mod lights;
-mod lights_setter;
+mod main_framebuffer;
 mod short_duration;
 
 pub use button::{Button, Column, Row};
@@ -68,6 +68,6 @@ pub use framebuffer::Framebuffer;
 pub use language::LanguageTag;
 pub use lights::LightDir;
 pub use lights::Lights;
-pub use lights_setter::LightsSetter;
 pub use log;
+pub use main_framebuffer::MainFramebuffer;
 pub use short_duration::ShortDuration;
