@@ -20,7 +20,7 @@ use std::sync::Mutex;
 /// Get a reference to the global instance using [`MainFramebuffer::get()`].
 #[derive(Clone)]
 pub struct MainFramebuffer {
-    inner: Arc<Mutex<LightsSettingInner>>,
+    inner: Arc<Mutex<MainFramebufferInner>>,
 }
 
 impl MainFramebuffer {
@@ -35,7 +35,7 @@ impl MainFramebuffer {
 
     #[doc(hidden)]
     pub fn new(hal: SetAndFlushLights) -> MainFramebuffer {
-        let inner = LightsSettingInner {
+        let inner = MainFramebufferInner {
             hal,
             buffer: Framebuffer::new(),
             auto_flush: true,
@@ -176,14 +176,14 @@ impl std::fmt::Debug for MainFramebuffer {
     }
 }
 
-struct LightsSettingInner {
+struct MainFramebufferInner {
     /// Do not call flush methods on this framebuffer
     pub buffer: Framebuffer,
     pub auto_flush: bool,
     pub hal: hal::SetAndFlushLights,
 }
 
-impl LightsSettingInner {
+impl MainFramebufferInner {
     pub fn flush(&mut self) {
         (self.hal)(&self.buffer.colors);
     }
