@@ -19,6 +19,9 @@ pub struct Framebuffer<C: Color = RGB> {
     pub colors: [C; Lights::COUNT],
 }
 
+/// [`Framebuffer`] using [`RGBA`] as its pixel type.
+pub type FramebufferRGBA = Framebuffer<RGBA>;
+
 impl<C: Color + Default> Default for Framebuffer<C> {
     fn default() -> Self {
         Framebuffer {
