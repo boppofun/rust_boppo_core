@@ -52,7 +52,7 @@ pub fn draw_light_circle_with_mask<C: Color>(
             } else {
                 1. - ((relative_dist - FALL_OFF_DISTANCE) / (1.0 - FALL_OFF_DISTANCE))
             };
-            let this_color = c.dim_to(percent_colored);
+            let this_color = fb.colors[idx].blend(c.dim_to(percent_colored));
             fb.set_color(Lights::from_index(idx), this_color);
         }
     }

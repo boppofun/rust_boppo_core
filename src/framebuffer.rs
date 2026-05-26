@@ -83,7 +83,7 @@ impl<C: Color> Framebuffer<C> {
         self.colors = [C::OFF; Lights::COUNT];
     }
 
-    /// Weighted average of `self` with `rhs`, using `weight_fn` to weight each pixel.
+    /// Blend `self` with `rhs`, using `blend_fn`.
     ///
     /// ```rust
     /// # use boppo_core::{Framebuffer, color, Lights};
@@ -95,19 +95,19 @@ impl<C: Color> Framebuffer<C> {
     /// };
     ///
     /// // All purple
-    /// let purple_fb = red_fb.weighted_average(&blue_fb, |_| 0.5);
+    /// let purple_fb = red_fb.blend(&blue_fb, |c1, c2, _| c1.weighted_average(c2, 0.5));
     ///
     /// // Fades from red to blue across Button::B0-Button::B4 then Button::B5-Button::B9
-    /// let smooth_fb = red_fb.weighted_average(&blue_fb, |i| (i / 5) as f32 / Lights::COUNT as f32);
+    /// let smooth_fb = red_fb.blend(&blue_fb, |c1, c2, i| c1.weighted_average(c2, (i / 5) as f32 / Lights::COUNT as f32));
     /// ```
     ///
     /// If you want to blend two [`Framebuffer<RGBA>`] together, see
     /// [`alpha_blend`][Framebuffer<RGBA>::alpha_blend]
-    pub fn weighted_average<W: Fn(usize) -> f32>(&self, rhs: &Self, weight_fn: W) -> Self {
+    pub fn blend<W: Fn(C, C, usize) -> C>(&self, rhs: &Self, blend_fn: W) -> Self {
         let mut colors = [C::OFF; Lights::COUNT];
         let mut i = 0;
         while i < Lights::COUNT {
-            colors[i] = self.colors[i].weighted_average(rhs.colors[i], weight_fn(i));
+            colors[i] = blend_fn(self.colors[i], rhs.colors[i], i);
             i += 1;
         }
         Framebuffer { colors }
@@ -116,11 +116,11 @@ impl<C: Color> Framebuffer<C> {
     /// Dim `self` to `dim_percent`, using the corresponding item in `dim_arr` for each pixel.
     /// Passing a `dim_percent` value of `0.0` returns `self`, whereas a value of `1.0` returns a
     /// blank/off buffer.
-    pub fn dim<W: Fn(usize) -> f32>(&self, dim_fn: W) -> Self {
+    pub fn dim<W: Fn(C, usize) -> C>(&self, dim_fn: W) -> Self {
         let mut colors = [C::OFF; Lights::COUNT];
         let mut i = 0;
         while i < Lights::COUNT {
-            colors[i] = self.colors[i].dim_to(dim_fn(i));
+            colors[i] = dim_fn(self.colors[i], i);
             i += 1;
         }
         Framebuffer { colors }
@@ -135,15 +135,15 @@ impl<C: Color> Framebuffer<C> {
 
     /// Blends the current light colors with this Framebuffer according to `self`'s alpha level.
     fn get_rgb_buffer_for_flush(&self, lights: &MainFramebuffer) -> [RGB; Lights::COUNT] {
-        let colors = self.colors.map(|c| {
+        let alphas = self.colors.map(|c| {
             // idx 3 will be `Some` for RGBA, and `None` for RGB.
             f32::from(*rgb::bytemuck::bytes_of(&c).get(3).unwrap_or(&255)) / 255.0
         });
         lights
             .get_currently_set()
-            .weighted_average(
+            .blend(
                 &self.map(|c| *rgb::bytemuck::from_bytes::<RGB>(&rgb::bytemuck::bytes_of(&c)[..3])),
-                |i| colors[i],
+                |c1, c2, i| c1.weighted_average(c2, alphas[i]),
             )
             .colors
     }

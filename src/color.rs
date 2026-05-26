@@ -77,6 +77,10 @@ pub trait Color: Copy + Default + PartialEq + rgb::bytemuck::NoUninit {
     #[must_use]
     fn weighted_average(self, rhs: Self, rhs_percent: f32) -> Self;
 
+    /// Blend two colors together, according to their brightness or alpha.
+    #[must_use]
+    fn blend(self, rhs: Self) -> Self;
+
     /// Dim a color.
     ///
     /// `percent`: 0.0 is [`OFF`] and 1.0 is `color` unchanged.
@@ -99,6 +103,17 @@ impl Color for RGB {
             g: mix_component(self.g, rhs.g, rhs_percent),
             b: mix_component(self.b, rhs.b, rhs_percent),
         }
+    }
+
+    fn blend(self, rhs: Self) -> Self {
+        let self_luminance = self.luminance();
+        let rhs_luminance = rhs.luminance();
+
+        let self_a = self.with_alpha((self_luminance * 255.) as u8);
+        let rhs_a = rhs.with_alpha((rhs_luminance * 255.) as u8);
+
+        let result_a = alpha_blend(self_a, rhs_a);
+        result_a.rgb().dim_to(f32::from(result_a.a) / 255.)
     }
 
     fn dim_to(self, percent: f32) -> Self {
@@ -127,6 +142,10 @@ impl Color for RGBA {
             b: mix_component(self.b, rhs.b, rhs_percent),
             a: mix_component(self.a, rhs.a, rhs_percent),
         }
+    }
+
+    fn blend(self, rhs: Self) -> Self {
+        alpha_blend(self, rhs)
     }
 
     fn dim_to(self, percent: f32) -> Self {
