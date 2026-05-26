@@ -40,12 +40,12 @@
 //! [Activity Guidelines](https://developer.boppo.com/docs/activity-guidelines)
 //! for guidelines on creating great activities.
 
-pub mod active_language;
 pub mod color;
 pub mod executor;
 #[doc(hidden)]
 pub mod hal;
 pub mod interpolation;
+pub mod language;
 pub mod lights_plane;
 pub mod update_loop;
 
@@ -54,7 +54,6 @@ mod button_events;
 mod buttons;
 mod easings;
 mod framebuffer;
-mod language;
 mod lights;
 mod main_framebuffer;
 mod short_duration;
@@ -65,7 +64,6 @@ pub use button_events::ButtonEvents;
 pub use buttons::Buttons;
 pub use easings::Easing;
 pub use framebuffer::Framebuffer;
-pub use language::LanguageTag;
 pub use lights::LightDir;
 pub use lights::Lights;
 pub use log;

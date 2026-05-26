@@ -7,7 +7,7 @@ pub use button_counts::ButtonCounts;
 
 use std::sync::atomic::AtomicPtr;
 
-use crate::{LanguageTag, Lights};
+use crate::{Lights, language::LanguageTag};
 
 pub(super) static LIGHTS: std::sync::OnceLock<crate::main_framebuffer::MainFramebuffer> =
     std::sync::OnceLock::new();
@@ -63,8 +63,6 @@ pub fn set_executor(executor: &crate::executor::Executor) {
 }
 
 /// Set the current system language to `language`.
-pub fn set_active_language(language: LanguageTag) {
-    let mut lock = crate::active_language::ACTIVE_LANGUAGE.lock().unwrap();
-    *lock = language;
-    drop(lock);
+pub fn set_system_language(language: LanguageTag) {
+    *crate::language::SYSTEM_LANGUAGE.lock().unwrap() = language;
 }

@@ -1,6 +1,25 @@
+//! Obtain the current system language with [`system_language()`]
 use std::{fmt::Display, ops::Deref, str::FromStr};
 
 use anyhow::ensure;
+
+use std::sync::Mutex;
+
+pub(crate) static SYSTEM_LANGUAGE: Mutex<LanguageTag> = Mutex::new(LanguageTag::US_ENGLISH);
+
+/// Returns the current system language as a [`LanguageTag`].
+///
+/// The current language will never change while an activity is running.
+pub fn system_language() -> LanguageTag {
+    #[expect(
+        clippy::missing_panics_doc,
+        reason = "Only `get` and `set` ever lock the mutex, and they can't panic so the mutex can't be poisoned"
+    )]
+    let lock = SYSTEM_LANGUAGE.lock().unwrap();
+    let value = *lock;
+    drop(lock);
+    value
+}
 
 /// Language tags similar to IETF BCP 47 (e.g. en-US)
 ///
@@ -127,7 +146,7 @@ impl Display for LanguageTag {
 
 #[cfg(test)]
 mod tests {
-    use crate::LanguageTag;
+    use super::LanguageTag;
 
     #[test]
     fn valid_tags_are_allowed() {
