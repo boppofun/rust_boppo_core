@@ -195,3 +195,12 @@ impl Updatable for DoNothingFor {
         }
     }
 }
+
+impl<F> Updatable for F
+where
+    F: FnMut(std::time::Duration) -> LoopControlFlow + Send,
+{
+    fn update(&mut self, delta_time: std::time::Duration) -> LoopControlFlow {
+        self(delta_time)
+    }
+}
