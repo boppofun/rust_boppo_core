@@ -40,6 +40,7 @@
 //! [Activity Guidelines](https://developer.boppo.com/docs/activity-guidelines)
 //! for guidelines on creating great activities.
 
+pub mod audio;
 pub mod color;
 pub mod executor;
 #[doc(hidden)]
