@@ -151,9 +151,9 @@ impl<C: Color> Framebuffer<C> {
 
 impl Framebuffer<RGB> {
     /// Flush this buffer to lights, blending with the current state according to `blend_fn`.
-    /// `blend_fn` is passed the light index, the current light color, and this buffer's light
-    /// color, in that order.
-    pub fn flush_blend<W: Fn(usize, RGB, RGB) -> RGB>(&self, blend_fn: W) {
+    /// `blend_fn` is passed the buffer's light color, the current light color, and the light index,
+    /// in that order.
+    pub fn flush_blend<W: Fn(RGB, RGB, usize) -> RGB>(&self, blend_fn: W) {
         let lights = MainFramebuffer::get();
 
         let current = lights.get_currently_set();
@@ -162,7 +162,7 @@ impl Framebuffer<RGB> {
         for i in 0..Lights::COUNT {
             lights.set_color(
                 Lights::from_index(i),
-                blend_fn(i, current.colors[i], self.colors[i]),
+                blend_fn(self.colors[i], current.colors[i], i),
             );
         }
     }
@@ -184,9 +184,9 @@ impl Framebuffer<RGB> {
 
 impl Framebuffer<RGBA> {
     /// Flush this buffer to lights, blending with the current state according to `blend_fn`.
-    /// `blend_fn` is passed the light index, the current light color, and this buffer's light
-    /// color, in that order.
-    pub fn flush_blend<W: Fn(usize, RGB, RGBA) -> RGB>(&self, blend_fn: W) {
+    /// `blend_fn` is passed the buffer's light color, the current light color, and the light index,
+    /// in that order.
+    pub fn flush_blend<W: Fn(RGBA, RGB, usize) -> RGB>(&self, blend_fn: W) {
         let lights = MainFramebuffer::get();
 
         let current = lights.get_currently_set();
@@ -195,7 +195,7 @@ impl Framebuffer<RGBA> {
         for i in 0..Lights::COUNT {
             lights.set_color(
                 Lights::from_index(i),
-                blend_fn(i, current.colors[i], self.colors[i]),
+                blend_fn(self.colors[i], current.colors[i], i),
             );
         }
     }
