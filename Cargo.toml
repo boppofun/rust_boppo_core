@@ -9,7 +9,6 @@ repository = "https://github.com/boppofun/rust_boppo_core"
 
 [dependencies]
 # These dependencies should be kept in sync with device_software workspace to reduce code duplication
-anyhow = "1.0.72"
 edge-executor = "0.4.1"
 embassy-time = "0.4"
 futures = { version = "0.3.30", default-features = false }

@@ -1,8 +1,6 @@
 //! Obtain the current system language with [`system_language()`]
 use std::{fmt::Display, ops::Deref, str::FromStr};
 
-use anyhow::ensure;
-
 use std::sync::Mutex;
 
 pub(crate) static SYSTEM_LANGUAGE: Mutex<LanguageTag> = Mutex::new(LanguageTag::US_ENGLISH);
@@ -46,19 +44,25 @@ impl LanguageTag {
     /// - have a length of 5 characters,
     /// - consist solely of ascii alphabetic characters, except that it must
     /// - have a '-' at the 2nd character position
-    pub fn new(tag: impl AsRef<str>) -> anyhow::Result<LanguageTag> {
+    pub fn new(tag: impl AsRef<str>) -> Option<LanguageTag> {
         let tag = tag.as_ref();
-        ensure!(tag.len() == 5);
-        ensure!(
-            tag.chars()
-                .take(2)
-                .chain(tag.chars().skip(3))
-                .all(|c| c.is_ascii_alphabetic())
-        );
-        ensure!(tag.chars().nth(2) == Some('-'));
+        if tag.len() != 5 {
+            return None;
+        }
+        if !tag
+            .chars()
+            .take(2)
+            .chain(tag.chars().skip(3))
+            .all(|c| c.is_ascii_alphabetic())
+        {
+            return None;
+        }
+        if tag.chars().nth(2) != Some('-') {
+            return None;
+        }
 
         // SAFETY: invariants ensured.
-        Ok(unsafe { Self::new_unchecked(tag) })
+        Some(unsafe { Self::new_unchecked(tag) })
     }
 
     /// Returns a new [`LanguageTag`], using `tag`.
@@ -123,10 +127,10 @@ impl LanguageTag {
 }
 
 impl FromStr for LanguageTag {
-    type Err = anyhow::Error;
+    type Err = LanguageTagParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        LanguageTag::new(s)
+        LanguageTag::new(s).ok_or(LanguageTagParseError)
     }
 }
 
@@ -144,14 +148,26 @@ impl Display for LanguageTag {
     }
 }
 
+#[derive(Debug)]
+/// Failed to parse a [`LanguageTag`] from a string.
+pub struct LanguageTagParseError;
+
+impl Display for LanguageTagParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "invalid language tag")
+    }
+}
+
+impl std::error::Error for LanguageTagParseError {}
+
 #[cfg(test)]
 mod tests {
     use super::LanguageTag;
 
     #[test]
     fn valid_tags_are_allowed() {
-        assert!(LanguageTag::new("en-US").is_ok());
-        assert!(LanguageTag::new("pt-BR").is_ok());
+        assert!(LanguageTag::new("en-US").is_some());
+        assert!(LanguageTag::new("pt-BR").is_some());
     }
 
     #[test]
