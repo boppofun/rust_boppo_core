@@ -4,7 +4,7 @@ use serde::{Serialize, Serializer, ser::SerializeMap};
 use serde_json::from_value;
 
 /// Instructions on how to create a sound for playback.
-#[derive(Debug, Eq, PartialEq, Clone, Default)]
+#[derive(Debug, PartialEq, Clone, Default)]
 pub enum SoundInstruction {
     /// Path to an audio file to play.
     ///
@@ -34,12 +34,32 @@ pub enum SoundInstruction {
     ///
     /// - `times` is optional; if omitted the sound is repeated indefinitely.
     Repeat(Box<SoundInstruction>, Option<u64>),
+    /// Apply a volume multiplier to a sound.
+    ///
+    /// The `f32` is a multiplier: `1.0` = original volume, `0.5` = half, `2.0` = double.
+    ///
+    /// If you also want to change the volume after playback has started (and
+    /// optionally before too), use a [`SoundInstruction::Controller`] instead.
+    ///
+    /// JSON representation: `{"i": "volume", "multiplier": 0.5, "sound": <SoundInstruction>}`
+    Volume(f32, Box<SoundInstruction>),
+    /// Apply a speed multiplier to a sound.
+    ///
+    /// The `f32` is a multiplier: `1.0` = original speed, `2.0` = double speed.
+    /// Pitch is adjusted proportionally to speed (faster → higher pitch, slower → lower pitch).
+    ///
+    /// If you also want to change the speed after playback has started (and
+    /// optionally before too), use a [`SoundInstruction::Controller`] instead.
+    ///
+    /// JSON representation: `{"i": "speed", "multiplier": 2.0, "sound": <SoundInstruction>}`
+    Speed(f32, Box<SoundInstruction>),
     /// Make the contained sound controllable
     ///
     /// You can control the speed, volume, and paused state of the sound as well as stop the sound completely.
     /// You can also get notifications when the sound has finished playing.
     ///
-    /// A Controller is not allowed to be nested within a Repeat.
+    /// You should not use volume or speed multipliers inside a controller as a controller already provides
+    /// volume and speed control over the sound. A Controller is not allowed to be nested within a Repeat.
     ///
     /// JSON representation: `{"i": "controller", "sound": <SoundInstruction>, "id": 1, "speed": 1.0, "volume": 1.0, "paused": false}`
     ///
@@ -219,6 +239,32 @@ impl<'de> serde::Deserialize<'de> for SoundInstruction {
                             },
                         )
                     }
+                    "volume" => {
+                        let multiplier = map
+                            .get("multiplier")
+                            .and_then(Value::as_f64)
+                            .map(|v| v as f32)
+                            .ok_or(D::Error::custom("volume requires multiplier field"))?;
+                        let sound_json = map
+                            .remove("sound")
+                            .ok_or(D::Error::custom("volume requires sound field"))?;
+                        let sound: SoundInstruction =
+                            serde_json::from_value(sound_json).map_err(D::Error::custom)?;
+                        SoundInstruction::Volume(multiplier, Box::new(sound))
+                    }
+                    "speed" => {
+                        let multiplier = map
+                            .get("multiplier")
+                            .and_then(Value::as_f64)
+                            .map(|v| v as f32)
+                            .ok_or(D::Error::custom("speed requires multiplier field"))?;
+                        let sound_json = map
+                            .remove("sound")
+                            .ok_or(D::Error::custom("speed requires sound field"))?;
+                        let sound: SoundInstruction =
+                            serde_json::from_value(sound_json).map_err(D::Error::custom)?;
+                        SoundInstruction::Speed(multiplier, Box::new(sound))
+                    }
                     "error_sound" => SoundInstruction::ErrorSound,
                     "empty_sound" => SoundInstruction::EmptySound,
                     unknown => {
@@ -305,6 +351,20 @@ impl Serialize for SoundInstruction {
                 if !commands.is_empty() {
                     map.serialize_entry("commands", commands)?;
                 }
+                map.end()
+            }
+            SoundInstruction::Volume(multiplier, sound) => {
+                let mut map = serializer.serialize_map(Some(3))?;
+                map.serialize_entry("i", "volume")?;
+                map.serialize_entry("multiplier", multiplier)?;
+                map.serialize_entry("sound", sound)?;
+                map.end()
+            }
+            SoundInstruction::Speed(multiplier, sound) => {
+                let mut map = serializer.serialize_map(Some(3))?;
+                map.serialize_entry("i", "speed")?;
+                map.serialize_entry("multiplier", multiplier)?;
+                map.serialize_entry("sound", sound)?;
                 map.end()
             }
             SoundInstruction::ErrorSound => {
@@ -467,6 +527,22 @@ mod tests {
             Box::new(SoundInstruction::PlayFile("bg.mp3".into())),
             vec!["0 START".into(), "5000 STOP".into()],
         );
+        assert_eq!(round_trip(&instr), instr);
+    }
+
+    #[test]
+    fn volume() {
+        let instr = SoundInstruction::Volume(
+            0.5,
+            Box::new(SoundInstruction::PlayFile("quiet.mp3".into())),
+        );
+        assert_eq!(round_trip(&instr), instr);
+    }
+
+    #[test]
+    fn speed() {
+        let instr =
+            SoundInstruction::Speed(2.0, Box::new(SoundInstruction::PlayFile("fast.mp3".into())));
         assert_eq!(round_trip(&instr), instr);
     }
 
