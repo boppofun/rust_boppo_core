@@ -173,6 +173,13 @@ impl Framebuffer<RGB> {
             colors: self.colors.map(|c| c.with_alpha(a)),
         }
     }
+
+    /// Blends this framebuffer with the current [`MainFramebuffer`], and writes the result back to
+    /// this buffer.
+    pub fn blend_with_current(&mut self) {
+        let current = MainFramebuffer::get().get_currently_set();
+        *self = self.blend(&current, |c1, c2, _| c1.blend(c2));
+    }
 }
 
 impl Framebuffer<RGBA> {
@@ -240,6 +247,13 @@ impl Framebuffer<RGBA> {
         }
 
         Framebuffer { colors: out_buffer }
+    }
+
+    /// Blends this framebuffer with the current [`MainFramebuffer`], and writes the result back to
+    /// this buffer.
+    pub fn blend_with_current(&mut self) {
+        let current = MainFramebuffer::get().get_currently_set().with_alpha(255);
+        *self = self.blend(&current, |c1, c2, _| c1.blend(c2));
     }
 }
 
