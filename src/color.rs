@@ -109,11 +109,28 @@ impl Color for RGB {
         let self_luminance = self.luminance();
         let rhs_luminance = rhs.luminance();
 
-        let self_a = self.with_alpha((self_luminance * 255.) as u8);
-        let rhs_a = rhs.with_alpha((rhs_luminance * 255.) as u8);
+        let self_max = self.iter().max().unwrap();
+        let self_adjustment = 255. / f32::from(self_max);
+        let self_adjusted = Self {
+            r: (f32::from(self.r) * self_adjustment) as u8,
+            g: (f32::from(self.g) * self_adjustment) as u8,
+            b: (f32::from(self.b) * self_adjustment) as u8,
+        };
 
-        let result_a = alpha_blend(self_a, rhs_a);
-        result_a.rgb().dim_to(f32::from(result_a.a) / 255.)
+        let self_rgba = self_adjusted.with_alpha((self_luminance * 255.) as u8);
+
+        let rhs_max = rhs.iter().max().unwrap();
+        let rhs_adjustment = 255. / f32::from(rhs_max);
+        let rhs_adjusted = Self {
+            r: (f32::from(self.r) * rhs_adjustment) as u8,
+            g: (f32::from(self.g) * rhs_adjustment) as u8,
+            b: (f32::from(self.b) * rhs_adjustment) as u8,
+        };
+
+        let rhs_rgba = rhs_adjusted.with_alpha((rhs_luminance * 255.) as u8);
+
+        let result_rgba = alpha_blend(self_rgba, rhs_rgba);
+        result_rgba.rgb().dim_to(f32::from(result_rgba.a) / 255.)
     }
 
     fn dim_to(self, percent: f32) -> Self {
@@ -121,9 +138,12 @@ impl Color for RGB {
     }
 
     fn luminance(self) -> f32 {
-        let (r, g, b) = (f32::from(self.r), f32::from(self.g), f32::from(self.b));
-        let magnitude = (r * r + g * g + b * b).sqrt();
-        magnitude / 441.67296
+        let (r, g, b) = (
+            f32::from(self.r) / 255.,
+            f32::from(self.g) / 255.,
+            f32::from(self.b) / 255.,
+        );
+        (r * r + g * g + b * b).sqrt()
     }
 }
 
