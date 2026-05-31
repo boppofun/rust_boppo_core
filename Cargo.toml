@@ -10,16 +10,15 @@ repository = "https://github.com/boppofun/rust_boppo_core"
 [dependencies]
 # These dependencies should be kept in sync with device_software workspace to reduce code duplication
 anyhow = "1.0.72"
+edge-executor = "0.4.1"
+embassy-time = "0.4"
+futures = { version = "0.3.30", default-features = false }
 log = "0.4.17"
-embassy-time = { version = "0.4" }
-serde = { version = "1.0.218" }
-serde_json = "1.0.128"
 rand = "0.9"
-tokio = { version = "1.21", features = ["sync", "macros"] }
-futures = { version = "0.3.30", default-features = false, features = ["std", "alloc", "async-await"] }
 rgb = "0.8.34"
-
-edge-executor = { version = "0.4.1" }
+serde = "1.0.218"
+serde_json = "1.0.128"
+tokio = { version = "1.21", features = ["sync"] }
 
 [dev-dependencies]
 tokio = { version = "1.21", features = ["sync", "rt", "macros"] }
