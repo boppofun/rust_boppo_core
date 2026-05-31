@@ -6,7 +6,9 @@
 //! the buttons' natural coloring is grey.
 
 pub use rgb;
+use rgb::ComponentMap;
 pub use rgb::RGB8 as RGB;
+pub use rgb::RGBA8 as RGBA;
 
 /// #000000
 pub const OFF: RGB = RGB::new(0, 0, 0);
@@ -52,58 +54,32 @@ pub const TEAL: RGB = RGB::new(0, 127, 127);
 /// #FF7085
 pub const PINK: RGB = RGB::new(255, 112, 133);
 
-/// Blend two colors.
-///
-/// `percent` 0.0 returns `c1`, percent 1.0 returns `c2`.
-/// Anything inbetween returns the weighted component average of `c1` and `c2`.
-#[must_use]
-pub const fn blend(c1: RGB, c2: RGB, percent_second: f32) -> RGB {
-    #[allow(
-        clippy::cast_possible_truncation,
-        clippy::cast_sign_loss,
-        reason = "`rhs_percent.clamp(0.0, 1.0)` ensures `f32::from(u8)*percent_second<=255`, u8 ensures non-negative."
-    )]
-    const fn mix_component(a: u8, b: u8, percent_second: f32) -> u8 {
-        ((a as f32 * (1.0 - percent_second)).round() as u8)
-            .saturating_add((b as f32 * percent_second).round() as u8)
-    }
-
+#[allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    reason = "`rhs_percent.clamp(0.0, 1.0)` ensures `f32::from(u8)*percent_second<=255`, u8 ensures non-negative."
+)]
+const fn mix_component(a: u8, b: u8, percent_second: f32) -> u8 {
     let percent_second = percent_second.clamp(0.0, 1.0);
-
-    RGB {
-        r: mix_component(c1.r, c2.r, percent_second),
-        g: mix_component(c1.g, c2.g, percent_second),
-        b: mix_component(c1.b, c2.b, percent_second),
-    }
-}
-
-/// Dim a color.
-///
-/// `percent`: 0.0 is OFF and 1.0 is `color` unchanged.
-#[must_use]
-pub const fn dim_to(color: RGB, percent: f32) -> RGB {
-    blend(OFF, color, percent)
-}
-
-/// Brightness of a color.
-///
-/// `color::BLACK` has brightness 0.0, and `color::WHITE` has brightness 1.0
-// A perceived brightness function might be useful too.
-#[must_use]
-pub fn brightness(color: RGB) -> f32 {
-    let (r, g, b) = (f32::from(color.r), f32::from(color.g), f32::from(color.b));
-    let magnitude = (r * r + g * g + b * b).sqrt();
-    magnitude / 441.67296
+    ((a as f32 * (1.0 - percent_second)).round() as u8)
+        .saturating_add((b as f32 * percent_second).round() as u8)
 }
 
 /// Extension trait for useful operations on colors.
-pub trait ColorExt {
-    /// Blend two colors.
+pub trait Color: Copy + Default + PartialEq + rgb::bytemuck::NoUninit {
+    /// BLACK or OFF for this Color.
+    const OFF: Self;
+
+    /// Weighted component average of two colors.
     ///
     /// `rhs_percent` 0.0 returns `self`, `rhs_percent` 1.0 returns `rhs`.
     /// Anything inbetween returns the weighted component average of `self` and `rhs`.
     #[must_use]
-    fn blend(self, rhs: Self, rhs_percent: f32) -> Self;
+    fn weighted_average(self, rhs: Self, rhs_percent: f32) -> Self;
+
+    /// Blend two colors together, according to their brightness or alpha.
+    #[must_use]
+    fn blend(self, rhs: Self) -> Self;
 
     /// Dim a color.
     ///
@@ -118,16 +94,117 @@ pub trait ColorExt {
     fn luminance(self) -> f32;
 }
 
-impl ColorExt for RGB {
-    fn blend(self, rhs: Self, rhs_percent: f32) -> Self {
-        blend(self, rhs, rhs_percent)
+impl Color for RGB {
+    const OFF: Self = OFF;
+
+    fn weighted_average(self, rhs: Self, rhs_percent: f32) -> Self {
+        RGB {
+            r: mix_component(self.r, rhs.r, rhs_percent),
+            g: mix_component(self.g, rhs.g, rhs_percent),
+            b: mix_component(self.b, rhs.b, rhs_percent),
+        }
+    }
+
+    fn blend(self, rhs: Self) -> Self {
+        let self_luminance = self.luminance();
+        let rhs_luminance = rhs.luminance();
+
+        let self_max = self.iter().max().unwrap();
+        let self_adjustment = 255. / f32::from(self_max);
+        let self_adjusted = Self {
+            r: (f32::from(self.r) * self_adjustment) as u8,
+            g: (f32::from(self.g) * self_adjustment) as u8,
+            b: (f32::from(self.b) * self_adjustment) as u8,
+        };
+
+        let self_rgba = self_adjusted.with_alpha((self_luminance * 255.) as u8);
+
+        let rhs_max = rhs.iter().max().unwrap();
+        let rhs_adjustment = 255. / f32::from(rhs_max);
+        let rhs_adjusted = Self {
+            r: (f32::from(self.r) * rhs_adjustment) as u8,
+            g: (f32::from(self.g) * rhs_adjustment) as u8,
+            b: (f32::from(self.b) * rhs_adjustment) as u8,
+        };
+
+        let rhs_rgba = rhs_adjusted.with_alpha((rhs_luminance * 255.) as u8);
+
+        let result_rgba = alpha_blend(self_rgba, rhs_rgba);
+        result_rgba.rgb().dim_to(f32::from(result_rgba.a) / 255.)
     }
 
     fn dim_to(self, percent: f32) -> Self {
-        dim_to(self, percent)
+        self.weighted_average(Self::OFF, percent)
     }
 
     fn luminance(self) -> f32 {
-        brightness(self)
+        let (r, g, b) = (
+            f32::from(self.r) / 255.,
+            f32::from(self.g) / 255.,
+            f32::from(self.b) / 255.,
+        );
+        (r * r + g * g + b * b).sqrt()
     }
+}
+
+impl Color for RGBA {
+    const OFF: Self = RGBA {
+        r: 0,
+        g: 0,
+        b: 0,
+        a: 255,
+    };
+
+    fn weighted_average(self, rhs: Self, rhs_percent: f32) -> Self {
+        RGBA {
+            r: mix_component(self.r, rhs.r, rhs_percent),
+            g: mix_component(self.g, rhs.g, rhs_percent),
+            b: mix_component(self.b, rhs.b, rhs_percent),
+            a: mix_component(self.a, rhs.a, rhs_percent),
+        }
+    }
+
+    fn blend(self, rhs: Self) -> Self {
+        alpha_blend(self, rhs)
+    }
+
+    fn dim_to(self, percent: f32) -> Self {
+        Self {
+            r: self.r,
+            g: self.g,
+            b: self.b,
+            a: mix_component(self.a, 0, percent),
+        }
+    }
+
+    fn luminance(self) -> f32 {
+        const MAX_MAGNITUDE_SQUARED: f32 = 255.0 * 255.0 * 3.0;
+
+        let color_u8: [u8; 4] = rgb::bytemuck::bytes_of(&self).try_into().unwrap();
+        let color = color_u8.map(f32::from);
+        let magnitude = color[..3].iter().map(|c| c * c).sum::<f32>().sqrt();
+        magnitude / MAX_MAGNITUDE_SQUARED.sqrt() * (color[3] / 255.0)
+    }
+}
+
+/// Blends two [`RGBA`] together according to their alpha value, returning the result.
+#[must_use]
+#[expect(
+    clippy::cast_sign_loss,
+    clippy::cast_possible_truncation,
+    reason = "Result is never signed, or above 255"
+)]
+pub fn alpha_blend(lhs: RGBA, rhs: RGBA) -> RGBA {
+    let lhs = lhs.map(|c| f32::from(c) / 255.);
+    let rhs = rhs.map(|c| f32::from(c) / 255.);
+    let alpha_factor = lhs.a / rhs.a;
+    let alpha_factor2 = (1.0 - lhs.a) / rhs.a;
+
+    rgb::RGBA::<f32>::new(
+        lhs.r * alpha_factor + rhs.r * alpha_factor2,
+        lhs.g * alpha_factor + rhs.g * alpha_factor2,
+        lhs.b * alpha_factor + rhs.b * alpha_factor2,
+        1. - (1. - lhs.a) * (1. - rhs.a),
+    )
+    .map(|c| (c * 255.) as u8)
 }

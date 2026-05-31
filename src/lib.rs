@@ -63,7 +63,7 @@ pub use button_events::ButtonEvent;
 pub use button_events::ButtonEvents;
 pub use buttons::Buttons;
 pub use easings::Easing;
-pub use framebuffer::Framebuffer;
+pub use framebuffer::{Framebuffer, FramebufferRGBA};
 pub use lights::LightDir;
 pub use lights::Lights;
 pub use log;
