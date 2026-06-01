@@ -381,6 +381,48 @@ impl Serialize for SoundInstruction {
     }
 }
 
+impl SoundInstruction {
+    /// Returns all controller IDs found anywhere in the tree, or `None` if any
+    /// `Controller` appears directly or indirectly inside a `Repeat`.
+    pub fn controller_ids(&self) -> Option<Vec<u64>> {
+        let mut ids = Vec::new();
+        self.collect_controller_ids(&mut ids, false)?;
+        Some(ids)
+    }
+
+    fn collect_controller_ids(&self, ids: &mut Vec<u64>, inside_repeat: bool) -> Option<()> {
+        match self {
+            Self::Controller(sound, params) => {
+                if inside_repeat {
+                    return None;
+                }
+                ids.push(params.id);
+                sound.collect_controller_ids(ids, inside_repeat)?;
+            }
+            Self::Repeat(sound, _) => {
+                sound.collect_controller_ids(ids, true)?;
+            }
+            Self::List(sounds) | Self::Simultaneous(sounds) => {
+                for s in sounds {
+                    s.collect_controller_ids(ids, inside_repeat)?;
+                }
+            }
+            Self::Volume(_, sound) | Self::Speed(_, sound) => {
+                sound.collect_controller_ids(ids, inside_repeat)?;
+            }
+            Self::TimedCommands(_, sound, _) => {
+                sound.collect_controller_ids(ids, inside_repeat)?;
+            }
+            Self::PlayFile(_)
+            | Self::Silence(_)
+            | Self::SpeakNumber(_)
+            | Self::ErrorSound
+            | Self::EmptySound => {}
+        }
+        Some(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -561,5 +603,72 @@ mod tests {
             Some(3),
         );
         assert_eq!(round_trip(&instr), instr);
+    }
+
+    fn ctrl(id: u64, sound: SoundInstruction) -> SoundInstruction {
+        SoundInstruction::Controller(
+            Box::new(sound),
+            ControllerParams { id, speed: None, volume: None, paused: None },
+        )
+    }
+
+    fn file() -> SoundInstruction {
+        SoundInstruction::PlayFile("a.mp3".into())
+    }
+
+    #[test]
+    fn controller_ids_no_controllers() {
+        assert_eq!(SoundInstruction::EmptySound.controller_ids(), Some(vec![]));
+        assert_eq!(file().controller_ids(), Some(vec![]));
+    }
+
+    #[test]
+    fn controller_ids_single() {
+        assert_eq!(ctrl(1, file()).controller_ids(), Some(vec![1]));
+    }
+
+    #[test]
+    fn controller_ids_multiple_in_list() {
+        let instr = SoundInstruction::List(vec![ctrl(1, file()), ctrl(2, file())]);
+        assert_eq!(instr.controller_ids(), Some(vec![1, 2]));
+    }
+
+    #[test]
+    fn controller_ids_nested_controller() {
+        // Controller wrapping another Controller
+        let instr = ctrl(1, ctrl(2, file()));
+        assert_eq!(instr.controller_ids(), Some(vec![1, 2]));
+    }
+
+    #[test]
+    fn controller_ids_controller_inside_repeat_is_none() {
+        let instr = SoundInstruction::Repeat(Box::new(ctrl(1, file())), Some(3));
+        assert_eq!(instr.controller_ids(), None);
+    }
+
+    #[test]
+    fn controller_ids_controller_deeply_inside_repeat_is_none() {
+        // Controller is buried inside a List inside a Repeat
+        let instr = SoundInstruction::Repeat(
+            Box::new(SoundInstruction::List(vec![file(), ctrl(5, file())])),
+            None,
+        );
+        assert_eq!(instr.controller_ids(), None);
+    }
+
+    #[test]
+    fn controller_ids_repeat_without_controller() {
+        let instr = SoundInstruction::Repeat(Box::new(file()), Some(2));
+        assert_eq!(instr.controller_ids(), Some(vec![]));
+    }
+
+    #[test]
+    fn controller_ids_controller_outside_repeat_with_repeat_sibling() {
+        // One controller at the top level; sibling is a Repeat with no controller
+        let instr = SoundInstruction::List(vec![
+            ctrl(7, file()),
+            SoundInstruction::Repeat(Box::new(file()), Some(2)),
+        ]);
+        assert_eq!(instr.controller_ids(), Some(vec![7]));
     }
 }
