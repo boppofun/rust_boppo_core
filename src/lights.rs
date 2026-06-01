@@ -72,7 +72,7 @@ impl Lights {
     /// Returns a new [`Lights`] with `bits`.
     ///
     /// Each bit in `bits` represents whether an individual light has been selected.
-    /// The least significant bit selects `Button::B1.light_at(LightDir::Top)`.
+    /// The least significant bit selects `Button::B0.light_at(LightDir::Top)`.
     ///
     /// # Ordering
     ///
@@ -127,7 +127,7 @@ impl Lights {
         (self.bits | other.bits) == self.bits
     }
 
-    /// Returns `true` if `other` selects only buttons that `self` selects.
+    /// Returns `true` if `self` selects only lights that `other` selects.
     ///
     /// See also [`Lights::is_superset`]
     #[must_use]
@@ -168,7 +168,7 @@ impl Lights {
         Lights::from_bitset(self.bits.reverse_bits() >> 24)
     }
 
-    /// A compact representation. The least significant bit represents if button 1 is pressed...
+    /// A compact representation. The least significant bit represents if button 0 is pressed...
     #[must_use]
     pub const fn as_bitset(&self) -> u64 {
         self.bits
@@ -249,20 +249,35 @@ impl std::ops::Not for Lights {
     }
 }
 
+/// An iterator over the `(Button, LightDir)` pairs in a [`Lights`] selection, in index order.
+pub struct LightsIter {
+    bits: u64,
+}
+
+impl Iterator for LightsIter {
+    type Item = (Button, LightDir);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.bits == 0 {
+            None
+        } else {
+            let index = self.bits.trailing_zeros() as usize;
+            self.bits &= self.bits - 1;
+            Some((
+                Button::from_index(index / 4),
+                LightDir::from_index(index % 4).unwrap(),
+            ))
+        }
+    }
+}
+
 impl std::iter::IntoIterator for Lights {
     type Item = (Button, LightDir);
-    type IntoIter = Box<dyn Iterator<Item = (Button, LightDir)>>;
+    type IntoIter = LightsIter;
 
     /// Iterates in order of index.
     fn into_iter(self) -> Self::IntoIter {
-        Box::new(self.indices().map(|index| {
-            let button_index = index / 4;
-            let light_dir_index = index % 4;
-            (
-                Button::from_index(button_index),
-                LightDir::from_index(light_dir_index).unwrap(),
-            )
-        }))
+        LightsIter { bits: self.bits }
     }
 }
 

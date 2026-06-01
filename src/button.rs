@@ -291,7 +291,7 @@ impl<'de> Deserialize<'de> for Button {
         D: Deserializer<'de>,
     {
         let idx = usize::deserialize(deserializer)?;
-        if idx > Button::COUNT {
+        if idx >= Button::COUNT {
             return Err(D::Error::custom(format!("Invalid button index: {idx}")));
         }
         Ok(Button::from_index(idx))

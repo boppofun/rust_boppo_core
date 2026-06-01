@@ -61,7 +61,7 @@ impl Buttons {
     }
 
     /// Returns a new [`Buttons`] with `bits`. Each bit in `bits` represents whether an individual
-    /// button has been selected. The 0th bit selects [`Button::B1`].
+    /// button has been selected. The 0th bit selects [`Button::B0`].
     ///
     /// # Panics
     ///
@@ -93,11 +93,7 @@ impl Buttons {
         }
     }
 
-    /// Return a selection of the two buttons in the column of zero-based `column_index`.
-    ///
-    /// # Panics
-    ///
-    /// If `column_index` >= `NUM_COLUMNS`.
+    /// Returns the two buttons in `col` (one per row).
     ///
     /// # Example
     ///
@@ -204,7 +200,7 @@ impl Buttons {
         Buttons::from_bitset(self.bits.reverse_bits() >> 6)
     }
 
-    /// A compact representation. The least significant bit represents if button 1 is pressed...
+    /// A compact representation. The least significant bit represents if button 0 is pressed...
     #[must_use]
     pub const fn as_bitset(&self) -> u16 {
         self.bits
@@ -258,17 +254,17 @@ impl Buttons {
 
     /// Returns an iterator over every [`Button`] in this selection.
     #[must_use]
-    pub fn iter(&self) -> Box<dyn Iterator<Item = Button> + Send + Sync> {
-        self.into_iter()
+    pub fn iter(&self) -> ButtonsIter {
+        ButtonsIter { bits: self.bits }
     }
 }
 
 impl IntoIterator for &Buttons {
-    type IntoIter = Box<dyn Iterator<Item = Button> + Send + Sync>;
+    type IntoIter = ButtonsIter;
     type Item = Button;
 
     fn into_iter(self) -> Self::IntoIter {
-        Buttons::into_iter(*self)
+        self.iter()
     }
 }
 
@@ -330,12 +326,11 @@ impl std::ops::Not for Buttons {
 
 impl std::iter::IntoIterator for Buttons {
     type Item = Button;
-    // TODO: remove Box
-    type IntoIter = Box<dyn Iterator<Item = Button> + Send + Sync>;
+    type IntoIter = ButtonsIter;
 
     /// Iterates in order of index.
     fn into_iter(self) -> Self::IntoIter {
-        Box::new(self.indices().map(Button::from_index))
+        self.iter()
     }
 }
 
@@ -358,6 +353,37 @@ impl FromIterator<Button> for Buttons {
             res |= button.into();
         }
         res
+    }
+}
+
+/// An iterator over the [`Button`]s in a [`Buttons`] selection, in index order.
+pub struct ButtonsIter {
+    bits: u16,
+}
+
+impl Iterator for ButtonsIter {
+    type Item = Button;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.bits == 0 {
+            None
+        } else {
+            let next = self.bits.trailing_zeros() as usize;
+            self.bits &= self.bits - 1;
+            Some(Button::from_index(next))
+        }
+    }
+}
+
+impl DoubleEndedIterator for ButtonsIter {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        if self.bits == 0 {
+            None
+        } else {
+            let next = self.bits.ilog2() as usize;
+            self.bits ^= 1u16 << next;
+            Some(Button::from_index(next))
+        }
     }
 }
 

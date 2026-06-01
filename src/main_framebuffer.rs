@@ -53,7 +53,7 @@ impl MainFramebuffer {
     /// * [`Lights.set_color`][crate::Lights::set_color]
     #[expect(
         clippy::missing_panics_doc,
-        reason = "Mutex is internal and should not poisen"
+        reason = "Mutex is internal and should not poison"
     )]
     pub fn set_color(&self, selection: Lights, color: RGB) {
         let mut inner = self.inner.lock().unwrap();
@@ -70,7 +70,7 @@ impl MainFramebuffer {
     /// * [`Lights.set_colors`][crate::Lights::set_color]
     #[expect(
         clippy::missing_panics_doc,
-        reason = "Mutex is internal and should not poisen"
+        reason = "Mutex is internal and should not poison"
     )]
     pub fn set_all_colors(&self, colors: &[RGB; Lights::COUNT]) {
         let mut inner = self.inner.lock().unwrap();
@@ -84,7 +84,7 @@ impl MainFramebuffer {
     /// Sets colors from the provided slice, ignoring any color that is not part of `selection`.
     #[expect(
         clippy::missing_panics_doc,
-        reason = "Mutex is internal and should not poisen"
+        reason = "Mutex is internal and should not poison"
     )]
     pub fn set_colors_on_selection(&self, selection: Lights, colors: &[RGB; Lights::COUNT]) {
         let mut inner = self.inner.lock().unwrap();
@@ -104,7 +104,7 @@ impl MainFramebuffer {
     /// will be ignored, depending on which contains fewer elements.
     #[expect(
         clippy::missing_panics_doc,
-        reason = "Mutex is internal and should not poisen"
+        reason = "Mutex is internal and should not poison"
     )]
     pub fn set_colors_on(&self, selection: Lights, colors: &[RGB]) {
         let mut inner = self.inner.lock().unwrap();
@@ -122,7 +122,7 @@ impl MainFramebuffer {
     /// Flush all pending color changes to the hardware for visual change.
     #[expect(
         clippy::missing_panics_doc,
-        reason = "Mutex is internal and should not poisen"
+        reason = "Mutex is internal and should not poison"
     )]
     pub fn flush(&self) {
         let mut inner = self.inner.lock().unwrap();
@@ -132,7 +132,7 @@ impl MainFramebuffer {
     /// Enable or disable auto flushing of color changes to the hardware.
     #[expect(
         clippy::missing_panics_doc,
-        reason = "Mutex is internal and should not poisen"
+        reason = "Mutex is internal and should not poison"
     )]
     pub fn set_auto_flush(&self, v: bool) {
         let mut inner = self.inner.lock().unwrap();
@@ -144,7 +144,7 @@ impl MainFramebuffer {
     /// These colors may or may not have been flushed to the hardware.
     #[expect(
         clippy::missing_panics_doc,
-        reason = "Mutex is internal and should not poisen"
+        reason = "Mutex is internal and should not poison"
     )]
     pub fn get_currently_set(&self) -> Framebuffer {
         let inner = self.inner.lock().unwrap();
@@ -156,7 +156,7 @@ impl MainFramebuffer {
     /// If autoflush was on when this function was called it will be reenabled unconditionally.
     #[expect(
         clippy::missing_panics_doc,
-        reason = "Mutex is internal and should not poisen"
+        reason = "Mutex is internal and should not poison"
     )]
     #[must_use]
     pub fn pause_auto_flush(&self) -> PauseAutoFlushGuard {

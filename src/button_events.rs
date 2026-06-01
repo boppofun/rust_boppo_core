@@ -62,6 +62,7 @@ impl ButtonEvent {
     /// Represent this event as an u16 value.
     ///
     /// This is useful for making ButtonEvents cross FFIs.
+    #[must_use]
     pub fn as_u16(&self) -> u16 {
         self.data
     }
@@ -83,7 +84,7 @@ enum EventTypeFilter {
 /// A stream of top button press and release events.
 ///
 /// Subscribers should generally poll for events frequently as events are stored
-/// in a circular buffer and a subscriber can loose events if too many are
+/// in a circular buffer and a subscriber can lose events if too many are
 /// generated before being polled.
 ///
 /// See also the following alternative ways to get the pressed/released state of

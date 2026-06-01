@@ -69,11 +69,13 @@ impl ShortDuration {
     }
 
     /// Checked add – returns None if overflow occurs.
+    #[must_use]
     pub fn checked_add(self, other: ShortDuration) -> Option<Self> {
         self.millis.checked_add(other.millis).map(Self::from_millis)
     }
 
     /// Checked sub – returns None if underflow occurs.
+    #[must_use]
     pub fn checked_sub(self, other: ShortDuration) -> Option<Self> {
         self.millis.checked_sub(other.millis).map(Self::from_millis)
     }
@@ -112,8 +114,17 @@ impl Default for ShortDuration {
     }
 }
 
+/// Error returned when a [`std::time::Duration`] is too large to fit in a [`ShortDuration`].
 #[derive(Debug)]
 pub struct OutOfBoundsError;
+
+impl std::fmt::Display for OutOfBoundsError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "duration too large for ShortDuration (max ~48 days)")
+    }
+}
+
+impl std::error::Error for OutOfBoundsError {}
 
 impl TryFrom<std::time::Duration> for ShortDuration {
     type Error = OutOfBoundsError;
@@ -155,7 +166,7 @@ impl Mul<u32> for ShortDuration {
     type Output = ShortDuration;
 
     fn mul(self, rhs: u32) -> Self::Output {
-        ShortDuration::from_millis(self.as_millis() * rhs)
+        ShortDuration::from_millis(self.millis.saturating_mul(rhs))
     }
 }
 
@@ -169,12 +180,12 @@ impl Div<u32> for ShortDuration {
 
 impl AddAssign for ShortDuration {
     fn add_assign(&mut self, rhs: Self) {
-        self.millis += rhs.millis;
+        self.millis = self.millis.saturating_add(rhs.millis);
     }
 }
 
 impl SubAssign for ShortDuration {
     fn sub_assign(&mut self, rhs: Self) {
-        self.millis -= rhs.millis;
+        self.millis = self.millis.saturating_sub(rhs.millis);
     }
 }

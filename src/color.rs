@@ -38,7 +38,7 @@ pub const ROSE: RGB = RGB::new(255, 0, 127);
 /// #7F00FF
 pub const VIOLET: RGB = RGB::new(127, 0, 255);
 /// #7FFF00
-pub const CHARTRUESE: RGB = RGB::new(127, 255, 0);
+pub const CHARTREUSE: RGB = RGB::new(127, 255, 0);
 /// #00FF7F
 pub const SPRING_GREEN: RGB = RGB::new(0, 255, 127);
 /// #007FFF
@@ -55,7 +55,7 @@ pub const PINK: RGB = RGB::new(255, 112, 133);
 /// Blend two colors.
 ///
 /// `percent` 0.0 returns `c1`, percent 1.0 returns `c2`.
-/// Anything inbetween returns the weighted component average of `c1` and `c2`.
+/// Anything in between returns the weighted component average of `c1` and `c2`.
 #[must_use]
 pub const fn blend(c1: RGB, c2: RGB, percent_second: f32) -> RGB {
     #[allow(
