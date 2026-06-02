@@ -218,7 +218,7 @@ impl<'de> serde::Deserialize<'de> for SoundInstruction {
                             .get("id")
                             .and_then(Value::as_u64)
                             .ok_or(D::Error::custom("controller requires id field"))?;
-                        if id > 2 ^ 53 {
+                        if id > (1 << 53) {
                             return Err(D::Error::custom("controller id must be less than 2^53"));
                         }
                         let speed = map.get("speed").and_then(Value::as_f64).map(|v| v as f32);
@@ -608,7 +608,12 @@ mod tests {
     fn ctrl(id: u64, sound: SoundInstruction) -> SoundInstruction {
         SoundInstruction::Controller(
             Box::new(sound),
-            ControllerParams { id, speed: None, volume: None, paused: None },
+            ControllerParams {
+                id,
+                speed: None,
+                volume: None,
+                paused: None,
+            },
         )
     }
 
