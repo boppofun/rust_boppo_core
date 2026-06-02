@@ -1,4 +1,4 @@
-//! Provides the [`Updatable`] trait and types and functions for working with [`Updatable`s][Updatable].
+//! Provides the [`Updatable`] trait for calling a function at a fixed interval.
 use crate::{Lights, MainFramebuffer, color};
 
 use embassy_time::{Instant, Timer};
