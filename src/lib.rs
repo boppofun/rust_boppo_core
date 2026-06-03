@@ -31,8 +31,8 @@
 //!
 //! ## Audio
 //!
-//! Audio APIs are not apart of boppo_core because the APIs vary between
-//! environments (i.e. WASM vs WebSockets vs embedded in the firmware).
+//! Provides [`SoundInstruction`] and [`SoundBuilder`] for creating sounds.
+//! Playing those sounds is environment-dependent.
 //!
 //! ## Guidelines
 //!
