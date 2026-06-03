@@ -53,6 +53,7 @@ impl Error {
     /// Convert a host API return value into `Ok(n)` or `Err(Error)`.
     ///
     /// Negative values are treated as errors; non-negative values are returned as-is.
+    #[expect(clippy::missing_errors_doc)]
     pub fn result_from_i32(n: i32) -> Result<i32, Self> {
         if n < 0 { Err(Error::from(-n)) } else { Ok(n) }
     }

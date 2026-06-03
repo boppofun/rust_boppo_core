@@ -1,5 +1,7 @@
-//! This module is for device and framework implementers. Activity authors should not need to use any items here.
-//! Much of this module is for setting up the various resources that activities will have access to.
+//! Internal module for device and framework implementers.
+//!
+//! Activity authors should not need to use any items here. Much of this module
+//! is for setting up the various resources that activities will have access to.
 
 #[cfg(feature = "wasm")]
 pub mod wasm;
@@ -20,6 +22,7 @@ use crate::{Lights, language::LanguageTag};
 pub(super) static LIGHTS: std::sync::OnceLock<crate::main_framebuffer::MainFramebuffer> =
     std::sync::OnceLock::new();
 
+/// Callback type for flushing a light buffer to the hardware.
 pub type SetAndFlushLights = fn(&[crate::color::RGB; Lights::COUNT]);
 
 /// Initializes `LIGHTS` with `L`. Should only be called once, during device initialization.
@@ -70,7 +73,11 @@ pub fn set_executor(executor: &crate::executor::Executor) {
     );
 }
 
-/// Set the current system language to `language`.
+/// Set the current system language to `language`. Must only be called once, during device initialization.
+///
+/// # Panics
+///
+/// This function will panic if it is called after `SYSTEM_LANGUAGE` has been initialized.
 pub fn set_system_language(language: LanguageTag) {
     *crate::language::SYSTEM_LANGUAGE.lock().unwrap() = language;
 }
@@ -95,7 +102,11 @@ pub(crate) static PLAYING_SOUND_CONTROLLERS: OnceLock<
 > = OnceLock::new();
 
 /// Mark the sound controller as playing.
-pub fn set_sound_controller_as_playing(id: u64) {
+///
+/// ## Panics
+///
+/// Panics if the library hasn't been initialized.
+pub fn on_sound_controller_started_playing(id: u64) {
     PLAYING_SOUND_CONTROLLERS
         .get()
         .unwrap()
@@ -106,6 +117,10 @@ pub fn set_sound_controller_as_playing(id: u64) {
 }
 
 /// Notify all waiting controllers that the sound has finished playing and remove the sound from the list of playing
+///
+/// ## Panics
+///
+/// Panics if the library hasn't been initialized.
 pub fn on_sound_controller_finished(id: u64) {
     let mut optional_senders = {
         let mut map = PLAYING_SOUND_CONTROLLERS.get().unwrap().write().unwrap();

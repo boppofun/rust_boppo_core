@@ -43,7 +43,6 @@
 pub mod audio;
 pub mod color;
 pub mod executor;
-#[doc(hidden)]
 pub mod hal;
 pub mod interpolation;
 pub mod language;
