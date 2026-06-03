@@ -1,6 +1,9 @@
 //! This module is for device and framework implementers. Activity authors should not need to use any items here.
 //! Much of this module is for setting up the various resources that activities will have access to.
 
+#[cfg(feature = "wasm")]
+pub mod wasm;
+
 mod audio_paramter;
 mod button_counts;
 

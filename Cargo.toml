@@ -7,6 +7,10 @@ description = "The core APIs for creating activities for the Boppo tablet"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/boppofun/rust_boppo_core"
 
+[features]
+wasm = [] # For use by the WASM client and host but not other environments
+
+
 [dependencies]
 # These dependencies should be kept in sync with device_software workspace to reduce code duplication
 edge-executor = "0.4.1"
