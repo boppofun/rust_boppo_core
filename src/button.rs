@@ -3,7 +3,7 @@ use serde::{Deserialize, Deserializer};
 
 use crate::Lights;
 use crate::buttons::Buttons;
-use crate::hal::BUTTON_COUNTS;
+use crate::internal::BUTTON_COUNTS;
 use crate::lights::LightDir;
 
 /// One of the 10 top buttons.

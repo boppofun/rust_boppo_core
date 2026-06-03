@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 use log::warn;
 use tokio::sync::broadcast::{self, error::TryRecvError};
 
-use crate::{Button, Buttons, hal};
+use crate::{Button, Buttons, internal};
 
 /// A notification that a top button has been pressed or released
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -124,8 +124,7 @@ impl ButtonEvents {
     ///
     /// # Panics
     ///
-    /// This function should ordinarily never panic, but may if `hal::BUTTON_EVENTS` has not been
-    /// set.
+    /// This function should ordinarily never panic, but may if the library has not been initialized.
     ///
     /// # Examples
     ///
@@ -134,7 +133,7 @@ impl ButtonEvents {
     /// let mut button_events = ButtonEvents::subscribe();
     /// ```
     pub fn subscribe() -> ButtonEvents {
-        ButtonEvents::from_receiver(hal::BUTTON_EVENTS.get().unwrap().subscribe())
+        ButtonEvents::from_receiver(internal::BUTTON_EVENTS.get().unwrap().subscribe())
     }
 
     /// Returns a [`Future`] yielding the next [`ButtonEvent`].

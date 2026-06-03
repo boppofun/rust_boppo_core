@@ -43,7 +43,7 @@
 pub mod audio;
 pub mod color;
 pub mod executor;
-pub mod hal;
+pub mod internal;
 pub mod interpolation;
 pub mod language;
 pub mod lights_plane;

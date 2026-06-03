@@ -19,7 +19,7 @@ where
     F: Future<Output = T> + Send + 'static,
     T: Send + 'static,
 {
-    let ptr = crate::hal::EXECUTOR.load(std::sync::atomic::Ordering::SeqCst);
+    let ptr = crate::internal::EXECUTOR.load(std::sync::atomic::Ordering::SeqCst);
     let executor = unsafe { &*ptr };
     executor.spawn(fut)
 }

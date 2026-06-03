@@ -2,7 +2,7 @@ use rand::prelude::IteratorRandom;
 use serde::Deserialize;
 use serde::de::Error;
 
-use crate::hal::BUTTON_COUNTS;
+use crate::internal::BUTTON_COUNTS;
 use crate::lights::LightDir;
 use crate::{Column, Lights, Row};
 

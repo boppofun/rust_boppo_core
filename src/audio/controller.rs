@@ -1,4 +1,4 @@
-use crate::hal::{AudioParameter, PLAYING_SOUND_CONTROLLERS};
+use crate::internal::{AudioParameter, PLAYING_SOUND_CONTROLLERS};
 use tokio::sync::oneshot;
 
 /// A controller for a sound actively playing.
@@ -73,6 +73,8 @@ impl Controller {
     }
 
     fn set_controller_parameter(&self, param: AudioParameter, value: f32) {
-        (crate::hal::AUDIO_CONTROLLER_MODIFY_PARAMS_FN.get().unwrap())(self.0, param, value);
+        (crate::internal::AUDIO_CONTROLLER_MODIFY_PARAMS_FN
+            .get()
+            .unwrap())(self.0, param, value);
     }
 }

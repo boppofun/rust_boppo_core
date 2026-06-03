@@ -2,8 +2,8 @@ use crate::Framebuffer;
 use crate::Lights;
 
 use crate::color::RGB;
-use crate::hal;
-use crate::hal::SetAndFlushLights;
+use crate::internal;
+use crate::internal::SetAndFlushLights;
 use std::sync::Arc;
 use std::sync::Mutex;
 
@@ -30,7 +30,7 @@ impl MainFramebuffer {
     ///
     /// This function only panics if this library was not initialized properly.
     pub fn get() -> &'static MainFramebuffer {
-        crate::hal::LIGHTS.get().unwrap()
+        crate::internal::LIGHTS.get().unwrap()
     }
 
     #[doc(hidden)]
@@ -180,7 +180,7 @@ struct MainFramebufferInner {
     /// Do not call flush methods on this framebuffer
     pub buffer: Framebuffer,
     pub auto_flush: bool,
-    pub hal: hal::SetAndFlushLights,
+    pub hal: internal::SetAndFlushLights,
 }
 
 impl MainFramebufferInner {
