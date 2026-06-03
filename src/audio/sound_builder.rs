@@ -1,12 +1,11 @@
 //! [`SoundBuilder`] and related types for constructing sounds before playback.
 use super::Controller;
 use super::{ControllerParams, SoundInstruction};
-use std::{
-    sync::atomic::{AtomicU64, Ordering},
-    time::Duration,
-};
+use std::sync::Mutex;
+use std::time::Duration;
 
-static CONTROLLER_ID_COUNTER: AtomicU64 = AtomicU64::new(5_000_000_000);
+// AtomicU64 not available on ESP32
+static CONTROLLER_ID_COUNTER: Mutex<u64> = Mutex::new(5_000_000_000);
 
 /// Build a sound for playback.
 ///
@@ -261,5 +260,7 @@ impl From<SoundBuilder> for SoundInstruction {
 /// IDs below 5,000,000,000 are never assigned by this counter and are safe to
 /// use manually.
 pub fn next_controller_id() -> u64 {
-    CONTROLLER_ID_COUNTER.fetch_add(1, Ordering::Relaxed)
+    let mut counter = CONTROLLER_ID_COUNTER.lock().unwrap();
+    *counter += 1;
+    *counter - 1
 }
