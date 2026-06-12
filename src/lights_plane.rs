@@ -93,7 +93,7 @@ pub fn rectangle(
 
 /// Returns the x location of `col`.
 #[must_use]
-pub fn x_val_for_col(col: crate::Column) -> f32 {
+pub fn column_location(col: crate::Column) -> f32 {
     match col {
         crate::Column::C0 => -4.0,
         crate::Column::C1 => -2.0,
@@ -103,9 +103,9 @@ pub fn x_val_for_col(col: crate::Column) -> f32 {
     }
 }
 
-/// Returns the x location of `row`.
+/// Returns the y location of `row`.
 #[must_use]
-pub fn y_val_for_row(row: crate::Row) -> f32 {
+pub fn row_location(row: crate::Row) -> f32 {
     match row {
         crate::Row::Top => 1.0,
         crate::Row::Bottom => -1.0,
@@ -116,7 +116,7 @@ pub fn y_val_for_row(row: crate::Row) -> f32 {
 ///
 /// See also [`BUTTON_LOCATIONS`].
 #[must_use]
-pub const fn coordinates_for_button(button: Button) -> (f32, f32) {
+pub const fn button_location(button: Button) -> (f32, f32) {
     BUTTON_LOCATIONS[button.index()]
 }
 
@@ -124,15 +124,6 @@ pub const fn coordinates_for_button(button: Button) -> (f32, f32) {
 ///
 /// See also [`LIGHT_LOCATIONS`].
 #[must_use]
-pub fn coordinates_for_light(button: Button, dir: LightDir) -> (f32, f32) {
+pub fn light_location(button: Button, dir: LightDir) -> (f32, f32) {
     LIGHT_LOCATIONS[button.index() * 4 + dir as usize]
 }
-
-/// Returns the `x, y` coordinates of the light at `index`.
-///
-/// See also [`LIGHT_LOCATIONS`].
-#[must_use]
-pub fn coordinates_for_light_index(index: usize) -> (f32, f32) {
-    LIGHT_LOCATIONS[index]
-}
-
