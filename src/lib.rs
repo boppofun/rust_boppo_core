@@ -31,7 +31,8 @@
 //!
 //! ## Audio
 //!
-//! Provides [`SoundInstruction`] and [`SoundBuilder`] for creating sounds.
+//! Provides [`SoundInstruction`][audio::SoundInstruction] and
+//! [`SoundBuilder`][audio::SoundBuilder] for creating sounds.
 //! Playing those sounds is environment-dependent.
 //!
 //! ## Guidelines
