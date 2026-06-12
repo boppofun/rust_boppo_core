@@ -80,6 +80,8 @@ pub enum SoundInstruction {
     /// The number is spoken in the system language.
     ///
     /// JSON representation: `{"i": "speak_number", "number": 42}`
+    ///
+    /// Requires firmware version 260 or greater.
     SpeakNumber(i64),
     /// Timed Commands allow executing commands at specific times during the playback of a sound.
     ///
@@ -87,6 +89,12 @@ pub enum SoundInstruction {
     ///
     /// `commands_path` and `commands` are both optional. If both are present the commands are merged.
     TimedCommands(Option<String>, Box<SoundInstruction>, Vec<String>),
+    /// Generate a sine wave at the given frequency.
+    ///
+    /// The wave plays indefinitely until stopped (e.g. via a wrapping [`SoundInstruction::Controller`]).
+    ///
+    /// JSON representation: `{"i": "sine_wave", "hz": 440.0}`
+    SineWave(f32),
     /// An error beep that plays briefly.
     ///
     /// JSON representation: `{"i": "error_sound"}`
@@ -265,6 +273,14 @@ impl<'de> serde::Deserialize<'de> for SoundInstruction {
                             serde_json::from_value(sound_json).map_err(D::Error::custom)?;
                         SoundInstruction::Speed(multiplier, Box::new(sound))
                     }
+                    "sine_wave" => {
+                        let hz = map
+                            .get("hz")
+                            .and_then(Value::as_f64)
+                            .map(|v| v as f32)
+                            .ok_or(D::Error::custom("sine_wave requires hz field"))?;
+                        SoundInstruction::SineWave(hz)
+                    }
                     "error_sound" => SoundInstruction::ErrorSound,
                     "empty_sound" => SoundInstruction::EmptySound,
                     unknown => {
@@ -367,6 +383,12 @@ impl Serialize for SoundInstruction {
                 map.serialize_entry("sound", sound)?;
                 map.end()
             }
+            SoundInstruction::SineWave(hz) => {
+                let mut map = serializer.serialize_map(Some(2))?;
+                map.serialize_entry("i", "sine_wave")?;
+                map.serialize_entry("hz", hz)?;
+                map.end()
+            }
             SoundInstruction::ErrorSound => {
                 let mut map = serializer.serialize_map(Some(1))?;
                 map.serialize_entry("i", "error_sound")?;
@@ -416,6 +438,7 @@ impl SoundInstruction {
             Self::PlayFile(_)
             | Self::Silence(_)
             | Self::SpeakNumber(_)
+            | Self::SineWave(_)
             | Self::ErrorSound
             | Self::EmptySound => {}
         }
@@ -517,6 +540,12 @@ mod tests {
     #[test]
     fn speak_number() {
         let instr = SoundInstruction::SpeakNumber(-42);
+        assert_eq!(round_trip(&instr), instr);
+    }
+
+    #[test]
+    fn sine_wave() {
+        let instr = SoundInstruction::SineWave(440.0);
         assert_eq!(round_trip(&instr), instr);
     }
 

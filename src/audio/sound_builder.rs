@@ -69,6 +69,15 @@ impl SoundBuilder {
         Self(SoundInstruction::SpeakNumber(n))
     }
 
+    /// Generate a sine wave at the given frequency in Hz.
+    ///
+    /// Plays indefinitely until stopped (e.g. via [`SoundBuilder::controller`]).
+    ///
+    /// Requires firmware version 260 or greater
+    pub fn sine_wave(hz: f32) -> Self {
+        Self(SoundInstruction::SineWave(hz))
+    }
+
     /// Play the error sound.
     pub fn error_sound() -> Self {
         Self(SoundInstruction::ErrorSound)
