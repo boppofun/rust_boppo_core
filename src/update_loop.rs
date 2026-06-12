@@ -1,5 +1,5 @@
 //! Provides the [`Updatable`] trait for calling a function at a fixed interval.
-use crate::{Lights, MainFramebuffer, color};
+use crate::MainFramebuffer;
 
 use embassy_time::{Instant, Timer};
 
@@ -23,44 +23,20 @@ pub trait Updatable: Send {
     ///   or if updates have been paused.
     fn update(&mut self, delta_time: std::time::Duration) -> LoopControlFlow;
 
-    /// Run this updatable with the following default options:
-    ///
-    /// * `frames_per_second`: 30
-    /// * `clear_lights_each_frame`: false
-    fn run(&mut self) -> impl Future<Output = ()>
+    /// Run this updatable
+    fn run(&mut self, frames_per_second: u16) -> impl Future<Output = ()>
     where
         Self: Sized,
     {
-        run_with_opts(self, 30, false)
+        run(self, frames_per_second)
     }
-}
-
-/// Run with the following default opts
-///
-/// * `clear_lights_each_frame`: false
-pub async fn run(updatable: &mut dyn Updatable, frames_per_second: u64) {
-    run_with_opts(updatable, frames_per_second, false).await;
 }
 
 /// `run` should be called to start execution of `Updatable`s in an update loop, returning a `Future`
 /// that resolves when any of the `Updatable`s has retured `LoopControlFlow::Break`, thus ending the
 /// update sequence entirely.
 /// It takes an `Updatable` object on which it will call `update` each frame.
-///
-/// If `clear_lights_each_frame` is true then all lights are set to `color::OFF` before the updatable is called.
-/// Otherwise lights are left untouched between frames
-#[expect(
-    clippy::cast_precision_loss,
-    clippy::cast_sign_loss,
-    clippy::cast_possible_truncation,
-    reason = "`frames_per_second` is unsigned, and reasonably should not be large enough to cause any problems with the above lints."
-)]
-pub async fn run_with_opts(
-    updatable: &mut dyn Updatable,
-    // TODO(Ben Harris): Change this to u8. Possibly also outright limit it.
-    frames_per_second: u64,
-    clear_lights_each_frame: bool,
-) {
+pub async fn run(updatable: &mut dyn Updatable, frames_per_second: u16) {
     // compute once the normal matching delay for `frames_per_second`
     let delay = embassy_time::Duration::from_millis((1000.0 / frames_per_second as f64) as u64);
 
@@ -95,10 +71,6 @@ pub async fn run_with_opts(
         }
 
         let _flush_guard = MainFramebuffer::get().pause_auto_flush();
-
-        if clear_lights_each_frame {
-            MainFramebuffer::get().set_color(Lights::all(), color::OFF);
-        }
 
         // Immediately update the update_start instant to start tracking the next update cycle time
         let now = Instant::now();
