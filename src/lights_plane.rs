@@ -18,72 +18,39 @@
 use crate::Framebuffer;
 use crate::{Button, LightDir, Lights, color};
 
+mod circle_builder;
 mod coordinates;
 
+pub use circle_builder::CircleBuilder;
 pub use {coordinates::BUTTON_LOCATIONS, coordinates::LIGHT_LOCATIONS};
 
-/// Draws a circle of a certain color and radius on button lights.
+/// Returns a [`CircleBuilder`] for drawing a circle at `(x, y)` with the given `color` and `radius`.
 ///
 /// Coordinates are defined in the module documentation.
 ///
-/// Frame buffer needs to be flushed for lights to be updated.
-pub fn draw_light_circle_with_mask(
-    c: color::RGB,
-    x: f32,
-    y: f32,
-    radius: f32,
-    fb: &mut Framebuffer,
-    mask: Lights,
-) {
-    const FALL_OFF_DISTANCE: f32 = 0.7;
-
-    let dist_within_squared = radius * radius;
-    for idx in mask.indices() {
-        let (x2, y2) = LIGHT_LOCATIONS[idx];
-        let dx = x - x2;
-        let dy = y - y2;
-        let dist_squared = dx * dx + dy * dy;
-        let within = dist_squared < dist_within_squared;
-        if within {
-            let dist = dist_squared.sqrt();
-            let relative_dist = dist / radius;
-            let percent_colored = if relative_dist < FALL_OFF_DISTANCE {
-                1.0
-            } else {
-                1. - ((relative_dist - FALL_OFF_DISTANCE) / (1.0 - FALL_OFF_DISTANCE))
-            };
-            let this_color = color::dim_to(c, percent_colored);
-            fb.set_color(Lights::from_index(idx), this_color);
-        }
-    }
-}
-
-// TODO: make a builder pattern for drawing circles that takes in all of the options
-// TODO: Remove _light_ from these names
-// TODO: make the fallover color and distance controllable and also allow the falloff color
-// to be the existing color of the framebuffer
-/// Draws a `c`-colored, radius `radius`, circle at `x, y` onto `fb`, ignoring any lights not
-/// selected by `mask`.
-/// Does not flush `fb`.
-pub fn draw_light_circle_no_fall_off(
-    c: color::RGB,
-    x: f32,
-    y: f32,
-    radius: f32,
-    fb: &mut Framebuffer,
-    mask: Lights,
-) {
-    let dist_within_squared = radius * radius;
-    for idx in mask.indices() {
-        let (x2, y2) = LIGHT_LOCATIONS[idx];
-        let dx = x - x2;
-        let dy = y - y2;
-        let dist_squared = dx * dx + dy * dy;
-        let within = dist_squared < dist_within_squared;
-        if within {
-            fb.set_color(Lights::from_index(idx), c);
-        }
-    }
+/// By default all lights within the radius are drawn at full brightness. Call
+/// [`fall_off`][CircleBuilder::fall_off] to enable edge dimming.
+///
+/// Call [`draw`][CircleBuilder::draw] on the builder to apply it to a [`Framebuffer`].
+///
+/// # Examples
+///
+/// ```no_run
+/// # use boppo_core::{Framebuffer, Lights, color};
+/// # use boppo_core::lights_plane::circle;
+/// # let mut fb = Framebuffer::default();
+/// // Solid circle, all lights:
+/// circle(color::RED, (0.0, 0.0), 3.0).draw(&mut fb);
+///
+/// // Soft-edged circle — inner 70% full brightness, outer 30% fades:
+/// circle(color::RED, (0.0, 0.0), 3.0).fall_off(0.7).draw(&mut fb);
+///
+/// // Solid circle masked to top row:
+/// circle(color::BLUE, (0.0, 1.0), 2.0).mask(Lights::top_row()).draw(&mut fb);
+/// ```
+#[must_use]
+pub fn circle(color: color::RGB, center: (f32, f32), radius: f32) -> CircleBuilder {
+    CircleBuilder::new(color, center, radius)
 }
 
 /// Draws a rectangle of a certain color and dimensions on button lights.
@@ -109,15 +76,6 @@ pub fn draw_light_rectangle_with_mask(
         let alpha = (distance_to_nearest_border / FALL_OFF_DISTANCE).clamp(0., 1.);
         fb.set_color(Lights::from_index(idx), color::dim_to(color, alpha));
     }
-}
-
-/// Draws a circle of a certain color and radius on button lights.
-///
-/// Coordinates are defined in the module documentation.
-///
-/// Frame buffer needs to be flushed for lights to be updated.
-pub fn draw_light_circle(c: color::RGB, x: f32, y: f32, radius: f32, fb: &mut Framebuffer) {
-    draw_light_circle_with_mask(c, x, y, radius, fb, Lights::all());
 }
 
 /// Draws a rectangle of a certain color and dimensions on frambuffer `fb`.
