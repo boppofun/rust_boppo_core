@@ -15,13 +15,14 @@
 //! * [`Button::B0`] (top left) is at coordinates (-4,1)
 //! * [`Button::B9`] (bottom right) is at coordinates (4,-1).
 
-use crate::Framebuffer;
-use crate::{Button, LightDir, Lights, color};
+use crate::{Button, LightDir, color};
 
 mod circle_builder;
 mod coordinates;
+mod rectangle_builder;
 
 pub use circle_builder::CircleBuilder;
+pub use rectangle_builder::RectangleBuilder;
 pub use {coordinates::BUTTON_LOCATIONS, coordinates::LIGHT_LOCATIONS};
 
 /// Returns a [`CircleBuilder`] for drawing a circle at `(x, y)` with the given `color` and `radius`.
@@ -53,47 +54,41 @@ pub fn circle(color: color::RGB, center: (f32, f32), radius: f32) -> CircleBuild
     CircleBuilder::new(color, center, radius)
 }
 
-/// Draws a rectangle of a certain color and dimensions on button lights.
+/// Returns a [`RectangleBuilder`] for drawing a rectangle at `bottom_left` with the given `color`,
+/// `width`, and `height`.
 ///
-/// This function assumes x and y are the *bottom left corner* of the rectangle, and width and height are positive.
-///
-/// Coordinates are defined in the module documentation.
-///
-/// Frame buffer needs to be flushed for lights to be updated.
-pub fn draw_light_rectangle_with_mask(
-    color: color::RGB,
-    x: f32,
-    y: f32,
-    width: f32,
-    height: f32,
-    fb: &mut Framebuffer,
-    mask: Lights,
-) {
-    for idx in mask.indices() {
-        const FALL_OFF_DISTANCE: f32 = 0.2;
-        let (l_x, l_y) = coordinates_for_light_index(idx);
-        let distance_to_nearest_border = distance_within_rectangle(l_x, l_y, x, y, width, height);
-        let alpha = (distance_to_nearest_border / FALL_OFF_DISTANCE).clamp(0., 1.);
-        fb.set_color(Lights::from_index(idx), color::dim_to(color, alpha));
-    }
-}
-
-/// Draws a rectangle of a certain color and dimensions on frambuffer `fb`.
-///
-/// This function assumes x and y are the *bottom left corner* of the rectangle, and width and height are positive.
+/// `bottom_left` is the bottom-left corner of the rectangle. Width and height must be positive.
 ///
 /// Coordinates are defined in the module documentation.
 ///
-/// Frame buffer needs to be flushed for lights to be updated.
-pub fn draw_light_rectangle(
+/// By default all lights within the rectangle are drawn at full brightness. Call
+/// [`fall_off`][RectangleBuilder::fall_off] to enable edge dimming.
+///
+/// Call [`draw`][RectangleBuilder::draw] on the builder to apply it to a [`Framebuffer`].
+///
+/// # Examples
+///
+/// ```no_run
+/// # use boppo_core::{Framebuffer, Lights, color};
+/// # use boppo_core::lights_plane::rectangle;
+/// # let mut fb = Framebuffer::default();
+/// // Solid rectangle, all lights:
+/// rectangle(color::RED, (-2.0, -1.0), 4.0, 2.0).draw(&mut fb);
+///
+/// // Soft-edged rectangle — 0.2 unit fade zone at each edge:
+/// rectangle(color::RED, (-2.0, -1.0), 4.0, 2.0).fall_off(0.2).draw(&mut fb);
+///
+/// // Solid rectangle masked to bottom row:
+/// rectangle(color::BLUE, (-2.0, -1.0), 4.0, 2.0).mask(Lights::bottom_row()).draw(&mut fb);
+/// ```
+#[must_use]
+pub fn rectangle(
     color: color::RGB,
-    x: f32,
-    y: f32,
+    bottom_left: (f32, f32),
     width: f32,
     height: f32,
-    fb: &mut Framebuffer,
-) {
-    draw_light_rectangle_with_mask(color, x, y, width, height, fb, Lights::all());
+) -> RectangleBuilder {
+    RectangleBuilder::new(color, bottom_left, width, height)
 }
 
 /// Returns the x location of `col`.
@@ -141,24 +136,3 @@ pub fn coordinates_for_light_index(index: usize) -> (f32, f32) {
     LIGHT_LOCATIONS[index]
 }
 
-/// Returns the inner distance between a point the nearest border of a given rectangle.
-/// Returns 0 if the point is outside the rectangle.
-fn distance_within_rectangle(
-    p_x: f32,
-    p_y: f32,
-    rect_x: f32,
-    rect_y: f32,
-    rect_width: f32,
-    rect_height: f32,
-) -> f32 {
-    // If point within rectangle
-    if p_x > rect_x && p_x < rect_x + rect_width && p_y > rect_y && p_y < rect_y + rect_height {
-        f32::min(
-            f32::min((p_y - rect_y - rect_height).abs(), (p_y - rect_y).abs()),
-            f32::min((p_x - rect_x - rect_width).abs(), (p_x - rect_x).abs()),
-        )
-    } else {
-        // We don't care for points outside the rectangle, so distance is considered 0
-        0.0
-    }
-}
