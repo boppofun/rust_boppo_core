@@ -37,17 +37,17 @@ pub use {coordinates::BUTTON_LOCATIONS, coordinates::LIGHT_LOCATIONS};
 /// # Examples
 ///
 /// ```no_run
-/// # use boppo_core::{Framebuffer, Lights, color};
+/// # use boppo_core::{Buttons, Framebuffer, Lights, Row, color};
 /// # use boppo_core::lights_plane::circle;
 /// # let mut fb = Framebuffer::default();
 /// // Solid circle, all lights:
 /// circle(color::RED, (0.0, 0.0), 3.0).draw(&mut fb);
 ///
 /// // Soft-edged circle — inner 70% full brightness, outer 30% fades:
-/// circle(color::RED, (0.0, 0.0), 3.0).fall_off(0.7).draw(&mut fb);
+/// circle(color::RED, (0.0, 0.0), 3.0).relative_fall_off(0.7).draw(&mut fb);
 ///
 /// // Solid circle masked to top row:
-/// circle(color::BLUE, (0.0, 1.0), 2.0).mask(Lights::top_row()).draw(&mut fb);
+/// circle(color::BLUE, (0.0, 1.0), 2.0).mask(Buttons::row(Row::Top).into()).draw(&mut fb);
 /// ```
 #[must_use]
 pub fn circle(color: color::RGB, center: (f32, f32), radius: f32) -> CircleBuilder {
@@ -69,7 +69,7 @@ pub fn circle(color: color::RGB, center: (f32, f32), radius: f32) -> CircleBuild
 /// # Examples
 ///
 /// ```no_run
-/// # use boppo_core::{Framebuffer, Lights, color};
+/// # use boppo_core::{Buttons, Framebuffer, Lights, Row, color};
 /// # use boppo_core::lights_plane::rectangle;
 /// # let mut fb = Framebuffer::default();
 /// // Solid rectangle, all lights:
@@ -79,7 +79,7 @@ pub fn circle(color: color::RGB, center: (f32, f32), radius: f32) -> CircleBuild
 /// rectangle(color::RED, (-2.0, -1.0), 4.0, 2.0).fall_off(0.2).draw(&mut fb);
 ///
 /// // Solid rectangle masked to bottom row:
-/// rectangle(color::BLUE, (-2.0, -1.0), 4.0, 2.0).mask(Lights::bottom_row()).draw(&mut fb);
+/// rectangle(color::BLUE, (-2.0, -1.0), 4.0, 2.0).mask(Buttons::row(Row::Bottom).into()).draw(&mut fb);
 /// ```
 #[must_use]
 pub fn rectangle(
