@@ -3,7 +3,8 @@ check:
 
 release-checks:
     cargo build
-    cargo build --features wasm
-    cargo clippy --features wasm
-    cargo test --features wasm
+    cargo build --all-features
+    cargo clippy --all-features
+    cargo test --no-default-features
+    cargo test --all-features
     cargo doc --features wasm
