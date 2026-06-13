@@ -2,7 +2,7 @@ use crate::{Framebuffer, Lights, color, lights_plane::LIGHT_LOCATIONS};
 
 /// Builder for drawing a circle of lights on a [`Framebuffer`].
 ///
-/// Created by [`circle`]. Call [`draw`][CircleBuilder::draw] to apply.
+/// Created by [`circle`][super::circle]. Call [`draw`][CircleBuilder::draw] to apply.
 pub struct CircleBuilder {
     color: color::RGB,
     center: (f32, f32),

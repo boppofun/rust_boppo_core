@@ -30,9 +30,10 @@ pub use {coordinates::BUTTON_LOCATIONS, coordinates::LIGHT_LOCATIONS};
 /// Coordinates are defined in the module documentation.
 ///
 /// By default all lights within the radius are drawn at full brightness. Call
-/// [`fall_off`][CircleBuilder::fall_off] to enable edge dimming.
+/// [`relative_fall_off`][CircleBuilder::relative_fall_off] to enable edge dimming.
 ///
-/// Call [`draw`][CircleBuilder::draw] on the builder to apply it to a [`Framebuffer`].
+/// Call [`draw`][CircleBuilder::draw] on the builder to apply it to a
+/// [`Framebuffer`][crate::Framebuffer].
 ///
 /// # Examples
 ///
@@ -64,7 +65,8 @@ pub fn circle(color: color::RGB, center: (f32, f32), radius: f32) -> CircleBuild
 /// By default all lights within the rectangle are drawn at full brightness. Call
 /// [`fall_off`][RectangleBuilder::fall_off] to enable edge dimming.
 ///
-/// Call [`draw`][RectangleBuilder::draw] on the builder to apply it to a [`Framebuffer`].
+/// Call [`draw`][RectangleBuilder::draw] on the builder to apply it to a
+/// [`Framebuffer`][crate::Framebuffer].
 ///
 /// # Examples
 ///
