@@ -1,3 +1,5 @@
+use crate::{Button, Lights};
+
 const UNIT_IN_MM: f32 = 39. / 2.;
 // button center to center of LED: 9 mm
 // button center to edge of button: 14.0 mm
@@ -10,7 +12,7 @@ const LIGHT_TO_BUTTON_CENTER_MM: f32 = 13.0;
 pub const LIGHT_TO_BUTTON_CENTER: f32 = LIGHT_TO_BUTTON_CENTER_MM / UNIT_IN_MM;
 
 /// X,Y locations for each [`Button`][`crate::Button`], by their index.
-pub const BUTTON_LOCATIONS: &[(f32, f32)] = &[
+pub const BUTTON_LOCATIONS: [(f32, f32); Button::COUNT] = [
     (-4.0, 1.0),
     (-2.0, 1.0),
     (0.0, 1.0),
@@ -25,7 +27,7 @@ pub const BUTTON_LOCATIONS: &[(f32, f32)] = &[
 
 macro_rules! light_locations {
     ($($i : expr),+) => {
-        &[
+        [
             $(
             (
                 BUTTON_LOCATIONS[$i].0,
@@ -49,7 +51,8 @@ macro_rules! light_locations {
 }
 
 /// X,Y locations for each [`Light`][`crate::Lights`], by their index.
-pub const LIGHT_LOCATIONS: &[(f32, f32)] = light_locations![0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+pub const LIGHT_LOCATIONS: [(f32, f32); Lights::COUNT] =
+    light_locations![0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
 #[cfg(test)]
 mod tests {
@@ -60,13 +63,6 @@ mod tests {
     /// Verify button locations according to a centric origin with 1 unit being 1 half
     /// of the distance between buttons
     #[test]
-    #[expect(clippy::float_cmp, reason = "Testing known values")]
-    #[expect(
-        clippy::cast_possible_truncation,
-        clippy::cast_precision_loss,
-        clippy::cast_possible_wrap,
-        reason = "Indices are not large enough to cause problems"
-    )]
     fn verify_button_locations() {
         for (idx, _) in Buttons::all().into_iter().enumerate() {
             match idx {
