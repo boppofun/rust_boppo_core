@@ -27,5 +27,8 @@ release-commit:
     echo $crate_version
     jj commit -m "chore(release): v$crate_version"
 
+release-execute-dry-run: release-checks _update-git-head-main
+    release-plz release --dry-run
+
 release-execute: release-checks _update-git-head-main
     release-plz release
