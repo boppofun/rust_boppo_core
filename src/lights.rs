@@ -10,7 +10,7 @@ use std::convert::TryInto;
 ///
 /// # Ordering
 ///
-/// The order is in [`Button'][crate::Button] order from Button::B0 to
+/// The order is in [`Button`][crate::Button] order from Button::B0 to
 /// Button::B9 where each button has 4 lights together in the following order:
 ///
 /// * "Top"
@@ -119,7 +119,7 @@ impl Lights {
         self.len() == 0
     }
 
-    /// Returns `true` if `other` selects only buttons that `self` selects.
+    /// Returns `true` if `other` selects only lights that `self` selects.
     ///
     /// See also [`Lights::is_subset`]
     #[must_use]
@@ -135,7 +135,7 @@ impl Lights {
         other.is_superset(*self)
     }
 
-    /// Returns a double-ended iterator over the indices of every [`Button`] in this selection.
+    /// Returns a double-ended iterator over the indices of every light in this selection.
     #[must_use]
     pub const fn indices(&self) -> impl DoubleEndedIterator<Item = usize> + use<> {
         Indices { bits: self.bits }
@@ -161,14 +161,14 @@ impl Lights {
         Lights::from_indices(chosen[0..num_chosen].iter().copied())
     }
 
-    /// Return the Lights as if the device was rotate 180 degrees.
+    /// Return the Lights as if the device was rotated 180 degrees.
     /// Light 0 becomes 39, 1 becomes 38...
     #[must_use]
     pub const fn rotate_180(&self) -> Lights {
         Lights::from_bitset(self.bits.reverse_bits() >> 24)
     }
 
-    /// A compact representation. The least significant bit represents if button 0 is pressed...
+    /// A compact representation. The least significant bit represents if light 0 is selected...
     #[must_use]
     pub const fn as_bitset(&self) -> u64 {
         self.bits

@@ -246,7 +246,7 @@ impl ButtonEvents {
     ///         // We know there's an event here; unwrap it.
     ///         let ev = button_events.try_next().unwrap();
     ///         println!("{ev:?}");
-    ///         assert_eq!(event == ev);
+    ///         assert_eq!(event, ev);
     ///     },
     ///     Err(f_out) => println!("{f_out}"),
     /// }
@@ -373,7 +373,7 @@ impl ButtonEvents {
 
     /// Only press events will be returned from next.
     ///
-    /// Released events will still be relected in the state of `currently_pressed`.
+    /// Released events will still be reflected in the state of `currently_pressed`.
     pub fn only_report_press_events(&mut self) {
         if let Some(event) = self.peeked_event
             && event.is_released()

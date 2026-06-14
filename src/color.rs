@@ -87,7 +87,7 @@ pub const fn dim_to(color: RGB, percent: f32) -> RGB {
 
 /// Brightness of a color.
 ///
-/// `color::BLACK` has brightness 0.0, and `color::WHITE` has brightness 1.0
+/// `color::OFF` has brightness 0.0, and `color::WHITE` has brightness 1.0
 // A perceived brightness function might be useful too.
 #[must_use]
 pub fn brightness(color: RGB) -> f32 {
@@ -101,7 +101,7 @@ pub trait ColorExt {
     /// Blend two colors.
     ///
     /// `rhs_percent` 0.0 returns `self`, `rhs_percent` 1.0 returns `rhs`.
-    /// Anything inbetween returns the weighted component average of `self` and `rhs`.
+    /// Anything in between returns the weighted component average of `self` and `rhs`.
     #[must_use]
     fn blend(self, rhs: Self, rhs_percent: f32) -> Self;
 
@@ -113,7 +113,7 @@ pub trait ColorExt {
 
     /// Luminance of this color, not accounting for how the human eye perceives color.
     ///
-    /// `color::BLACK` has luminance 0.0, and `color::WHITE` has luminance 1.0
+    /// `color::OFF` has luminance 0.0, and `color::WHITE` has luminance 1.0
     #[must_use]
     fn luminance(self) -> f32;
 }

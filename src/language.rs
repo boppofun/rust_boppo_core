@@ -96,10 +96,11 @@ impl LanguageTag {
     /// # SAFETY
     ///
     /// It is the caller's responsibility to ensure that `tag`:
-    /// - has a length of 5 characters, and
-    /// - consists solely of ascii-alphabetic characters.
+    /// - has a length of 5 characters,
+    /// - has ascii-alphabetic characters at positions 0, 1, 3, and 4, and
+    /// - has a '-' at position 2.
     ///
-    /// If these constraints are not met, [`LanguageTag::deref`]  (and therefore
+    /// If these constraints are not met, [`LanguageTag::deref`] (and therefore
     /// [`LanguageTag::fmt`]) is unsound.
     const unsafe fn new_unchecked(tag: &str) -> LanguageTag {
         let bytes = tag.as_bytes();

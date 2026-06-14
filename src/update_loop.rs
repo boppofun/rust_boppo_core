@@ -12,9 +12,9 @@ pub enum LoopControlFlow {
     Break,
 }
 
-/// An `Updatable` expects to have `update` called at a desired fixed (but not garanteed) "frame" rate.
+/// An `Updatable` expects to have `update` called at a desired fixed (but not guaranteed) "frame" rate.
 ///
-/// Use `run` to run to have `updated` called until `LoopControlFlow::Break` is returned.
+/// Use `run` to have `update` called until `LoopControlFlow::Break` is returned.
 pub trait Updatable: Send {
     /// Called each interval (e.g. frame) to update the object.
     ///
@@ -32,10 +32,8 @@ pub trait Updatable: Send {
     }
 }
 
-/// `run` should be called to start execution of `Updatable`s in an update loop, returning a `Future`
-/// that resolves when any of the `Updatable`s has retured `LoopControlFlow::Break`, thus ending the
-/// update sequence entirely.
-/// It takes an `Updatable` object on which it will call `update` each frame.
+/// Call `update` on `updatable` in a loop at a rate of `frames_per_second` until
+/// `LoopControlFlow::Break` is returned by `updatable`.
 pub async fn run(updatable: &mut dyn Updatable, frames_per_second: u16) {
     // compute once the normal matching delay for `frames_per_second`
     let delay = embassy_time::Duration::from_millis((1000.0 / frames_per_second as f64) as u64);
@@ -142,14 +140,13 @@ impl Updatable for InParallel {
     }
 }
 
-/// Returns [`LoopControlFlow::Break`] after a specified time has elapsed when [`run`].
-/// Does note provide precise timing.
+/// Returns [`LoopControlFlow::Break`] after a specified time has elapsed when run via [`run`].
 pub struct DoNothingFor {
     remaining: std::time::Duration,
 }
 
 impl DoNothingFor {
-    /// Returns a [`DoNothingFor`] that will do return [`LoopControlFlow::Break`] after at least
+    /// Returns a [`DoNothingFor`] that will return [`LoopControlFlow::Break`] after at least
     /// `time` has elapsed.
     #[must_use]
     pub fn new(time: std::time::Duration) -> DoNothingFor {

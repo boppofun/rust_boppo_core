@@ -193,8 +193,8 @@ impl Buttons {
         Button::from_index(self.choose_n_randomly(1).as_bitset().trailing_zeros() as usize)
     }
 
-    /// Return the Buttons as if the device was rotate 180 degrees.
-    /// Button 1 becomes 10, 2 becomes 9... 5 becomes 6 and vise versa.
+    /// Return the Buttons as if the device was rotated 180 degrees.
+    /// Button 1 becomes 10, 2 becomes 9... 5 becomes 6 and vice versa.
     #[must_use]
     pub const fn rotate_180(&self) -> Buttons {
         Buttons::from_bitset(self.bits.reverse_bits() >> 6)

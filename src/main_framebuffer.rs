@@ -11,7 +11,7 @@ use std::sync::Mutex;
 /// after the next flush. All light color changes in this crate go through
 /// this Framebuffer.
 ///
-/// By default lights changes are immediately flushed to the hardware when
+/// By default light changes are immediately flushed to the hardware when
 /// [`set_color`][`MainFramebuffer::set_color`] or similar functions are called
 /// throughout this crate. Automatic flushing can be disabled via
 /// [`pause_auto_flush`][`MainFramebuffer::pause_auto_flush`] and
@@ -67,7 +67,7 @@ impl MainFramebuffer {
     ///
     /// ## See also
     ///
-    /// * [`Lights.set_colors`][crate::Lights::set_color]
+    /// * [`Lights.set_colors`][crate::Lights::set_colors]
     #[expect(
         clippy::missing_panics_doc,
         reason = "Mutex is internal and should not poison"

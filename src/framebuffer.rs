@@ -1,9 +1,9 @@
 use crate::{Buttons, Lights, MainFramebuffer, color};
 
-/// On "off-screen" buffer storing a color for each light on the tablet.
+/// An "off-screen" buffer storing a color for each light on the tablet.
 ///
-/// These colors can be modifed with a simlar API as `[Buttons]` but will
-/// not have any affect until `[flush]` is called.
+/// These colors can be modified with a similar API as [`Buttons`] but will
+/// not have any effect until [`Framebuffer::flush`] is called.
 #[derive(Clone)]
 pub struct Framebuffer {
     /// A color for each Light on the tablet.
