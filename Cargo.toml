@@ -1,6 +1,6 @@
 [package]
 name = "boppo_core"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2024"
 authors = ["Ben Hansen <ben@boppo.com>"]
 description = "The core APIs for creating activities for the Boppo tablet"
