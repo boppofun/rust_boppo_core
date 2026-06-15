@@ -67,12 +67,7 @@ impl RectangleBuilder {
 }
 
 /// Returns whether a point is strictly inside a rectangle.
-fn point_within_rectangle(
-    p: (f32, f32),
-    bottom_left: (f32, f32),
-    width: f32,
-    height: f32,
-) -> bool {
+fn point_within_rectangle(p: (f32, f32), bottom_left: (f32, f32), width: f32, height: f32) -> bool {
     let (p_x, p_y) = p;
     let (rect_x, rect_y) = bottom_left;
     p_x > rect_x && p_x < rect_x + width && p_y > rect_y && p_y < rect_y + height

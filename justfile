@@ -4,6 +4,7 @@ check:
 release-checks:
     cargo build
     cargo build --all-features
+    cargo fmt
     cargo clippy --all-features
     cargo test --no-default-features -q
     cargo test --all-features -q
