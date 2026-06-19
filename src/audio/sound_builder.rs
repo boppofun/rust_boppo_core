@@ -1,4 +1,6 @@
 //! [`SoundBuilder`] and related types for constructing sounds before playback.
+use crate::internal::PLAY_SOUND_INSTRUCTION_FN;
+
 use super::Controller;
 use super::{ControllerParams, SoundInstruction};
 use std::sync::Mutex;
@@ -12,7 +14,7 @@ static CONTROLLER_ID_COUNTER: Mutex<u64> = Mutex::new(5_000_000_000);
 /// This wraps a [`SoundInstruction`] and provides a more convenient API for building
 /// sounds and controlling them via [`Controller`] with auto-assigned IDs.
 ///
-/// ## Clone
+/// # Clone
 ///
 /// While SoundBuilder implements Clone, cloning a SoundBuilder with a Controller
 /// will clone the ID. If played, any existing Controllers with the ID would now
@@ -187,6 +189,15 @@ impl SoundBuilder {
     /// Return a reference to the underlying [`SoundInstruction`].
     pub fn as_instruction(&self) -> &SoundInstruction {
         &self.0
+    }
+
+    /// Actually play this sound to the active speaker.
+    ///
+    /// # Panics
+    ///
+    /// Panics if playback could not be started (e.g. file not found).
+    pub fn play(self) {
+        PLAY_SOUND_INSTRUCTION_FN.get().unwrap()(self);
     }
 }
 

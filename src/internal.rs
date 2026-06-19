@@ -17,7 +17,7 @@ use std::{
     sync::{OnceLock, RwLock, atomic::AtomicPtr},
 };
 
-use crate::{Lights, language::LanguageTag};
+use crate::{Lights, audio::SoundBuilder, language::LanguageTag};
 
 pub(super) static LIGHTS: std::sync::OnceLock<crate::main_framebuffer::MainFramebuffer> =
     std::sync::OnceLock::new();
@@ -82,14 +82,23 @@ pub fn set_system_language(language: LanguageTag) {
     *crate::language::SYSTEM_LANGUAGE.lock().unwrap() = language;
 }
 
+type PlaySoundInstructionFn = fn(SoundBuilder);
+
+pub(super) static PLAY_SOUND_INSTRUCTION_FN: std::sync::OnceLock<PlaySoundInstructionFn> =
+    std::sync::OnceLock::new();
+
 type AudioControllerModifyParamsFn = fn(u64, AudioParameter, f32);
 
 pub(super) static AUDIO_CONTROLLER_MODIFY_PARAMS_FN: std::sync::OnceLock<
     AudioControllerModifyParamsFn,
 > = std::sync::OnceLock::new();
 
-/// Initialize audio with the given `controller_modify_fn`.
-pub fn init_audio(controller_modify_fn: AudioControllerModifyParamsFn) {
+/// Initialize audio with the given `controller_modify_fn` and `play_sound_instruction_fn`.
+pub fn init_audio(
+    play_sound_instruction_fn: PlaySoundInstructionFn,
+    controller_modify_fn: AudioControllerModifyParamsFn,
+) {
+    let _ = PLAY_SOUND_INSTRUCTION_FN.set(play_sound_instruction_fn);
     let _ = AUDIO_CONTROLLER_MODIFY_PARAMS_FN.set(controller_modify_fn);
 
     let _ = PLAYING_SOUND_CONTROLLERS.set(RwLock::new(HashMap::new()));
