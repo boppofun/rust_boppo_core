@@ -22,8 +22,8 @@ mod coordinates;
 mod rectangle_builder;
 
 pub use circle_builder::CircleBuilder;
+pub use coordinates::*;
 pub use rectangle_builder::RectangleBuilder;
-pub use {coordinates::BUTTON_LOCATIONS, coordinates::LIGHT_LOCATIONS};
 
 /// Returns a [`CircleBuilder`] for drawing a circle at `(x, y)` with the given `color` and `radius`.
 ///
@@ -95,7 +95,7 @@ pub fn rectangle(
 
 /// Returns the x location of `col`.
 #[must_use]
-pub fn column_location(col: crate::Column) -> f32 {
+pub const fn column_location(col: crate::Column) -> f32 {
     match col {
         crate::Column::C0 => -4.0,
         crate::Column::C1 => -2.0,
@@ -107,7 +107,7 @@ pub fn column_location(col: crate::Column) -> f32 {
 
 /// Returns the y location of `row`.
 #[must_use]
-pub fn row_location(row: crate::Row) -> f32 {
+pub const fn row_location(row: crate::Row) -> f32 {
     match row {
         crate::Row::Top => 1.0,
         crate::Row::Bottom => -1.0,
@@ -126,6 +126,6 @@ pub const fn button_location(button: Button) -> (f32, f32) {
 ///
 /// See also [`LIGHT_LOCATIONS`].
 #[must_use]
-pub fn light_location(button: Button, dir: LightDir) -> (f32, f32) {
+pub const fn light_location(button: Button, dir: LightDir) -> (f32, f32) {
     LIGHT_LOCATIONS[button.index() * 4 + dir as usize]
 }
