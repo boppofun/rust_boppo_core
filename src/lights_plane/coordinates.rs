@@ -1,15 +1,15 @@
 use crate::{Button, LightDir, Lights, lights_plane::light_location};
 
-/// X Coordinate for the leftmost row of lights.
+/// X coordinate for the leftmost column of lights.
 pub const LEFTMOST_LIGHT_X: f32 = light_location(Button::B0, LightDir::Left).0;
-/// X Coordinate for the rightmost row of lights.
+/// X coordinate for the rightmost column of lights.
 pub const RIGHTMOST_LIGHT_X: f32 = light_location(Button::B9, LightDir::Right).0;
-/// Y Coordinate for the topmost row of lights.
+/// Y coordinate for the topmost row of lights.
 pub const TOPMOST_LIGHT_Y: f32 = light_location(Button::B0, LightDir::Top).1;
-/// Y Coordinate for the bottommost row of  lights.
+/// Y coordinate for the bottommost row of lights.
 pub const BOTTOMMOST_LIGHT_Y: f32 = light_location(Button::B9, LightDir::Bottom).1;
 
-/// The distance between the rightmost row of lights to the leftmost.
+/// The distance between the rightmost column of lights to the leftmost.
 pub const LIGHTS_HORIZONTAL_SPAN: f32 = RIGHTMOST_LIGHT_X - LEFTMOST_LIGHT_X;
 /// The distance between the topmost row of lights to the bottommost.
 pub const LIGHTS_VERTICAL_SPAN: f32 = TOPMOST_LIGHT_Y - BOTTOMMOST_LIGHT_Y;
