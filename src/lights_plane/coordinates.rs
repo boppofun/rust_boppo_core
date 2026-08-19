@@ -1,4 +1,18 @@
-use crate::{Button, Lights};
+use crate::{Button, LightDir, Lights, lights_plane::light_location};
+
+/// X Coordinate for the leftmost row of lights.
+pub const LEFTMOST_LIGHT_X: f32 = light_location(Button::B0, LightDir::Left).0;
+/// X Coordinate for the rightmost row of lights.
+pub const RIGHTMOST_LIGHT_X: f32 = light_location(Button::B9, LightDir::Right).0;
+/// Y Coordinate for the topmost row of lights.
+pub const TOPMOST_LIGHT_Y: f32 = light_location(Button::B0, LightDir::Top).1;
+/// Y Coordinate for the bottommost row of  lights.
+pub const BOTTOMMOST_LIGHT_Y: f32 = light_location(Button::B9, LightDir::Bottom).1;
+
+/// The distance between the rightmost row of lights to the leftmost.
+pub const LIGHTS_HORIZONTAL_SPAN: f32 = RIGHTMOST_LIGHT_X - LEFTMOST_LIGHT_X;
+/// The distance between the topmost row of lights to the bottommost.
+pub const LIGHTS_VERTICAL_SPAN: f32 = TOPMOST_LIGHT_Y - BOTTOMMOST_LIGHT_Y;
 
 const UNIT_IN_MM: f32 = 39. / 2.;
 // button center to center of LED: 9 mm
@@ -9,7 +23,7 @@ const UNIT_IN_MM: f32 = 39. / 2.;
 // button. Right now we choose a point closer to the edge of the button but we
 // might want to re-evaluate
 const LIGHT_TO_BUTTON_CENTER_MM: f32 = 13.0;
-pub const LIGHT_TO_BUTTON_CENTER: f32 = LIGHT_TO_BUTTON_CENTER_MM / UNIT_IN_MM;
+const LIGHT_TO_BUTTON_CENTER: f32 = LIGHT_TO_BUTTON_CENTER_MM / UNIT_IN_MM;
 
 /// X,Y locations for each [`Button`][`crate::Button`], by their index.
 pub const BUTTON_LOCATIONS: [(f32, f32); Button::COUNT] = [
