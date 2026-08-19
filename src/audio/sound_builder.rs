@@ -64,6 +64,13 @@ impl SoundBuilder {
         Self(SoundInstruction::Silence(duration))
     }
 
+    /// Play an audio for `duration`.
+    ///
+    /// Useful for canceling long loop files.
+    pub fn play_for(duration: Duration, file: &str) -> Self {
+        Self(SoundInstruction::PlayFor(duration, file.to_string()))
+    }
+
     /// Speak a number aloud.
     ///
     /// The number is spoken in the system language.
