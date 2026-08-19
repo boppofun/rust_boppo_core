@@ -77,10 +77,10 @@ pub enum SoundInstruction {
     Silence(Duration),
     /// Play an audio until the specified duration.
     ///
-    /// JSON Representation: `{"i": "play_for", "file": "loop.mp3", "millis": 1500}`
+    /// JSON Representation: `{"i": "finish_after", "file": "loop.mp3", "millis": 1500}`
     ///
     /// Useful for canceling long loop files.
-    PlayFor(Duration, String),
+    FinishAfter(Duration, String),
     /// Speak a number aloud using the stitched together sound files.
     ///
     /// The number is spoken in the system language.
@@ -189,14 +189,17 @@ impl<'de> serde::Deserialize<'de> for SoundInstruction {
                             .unwrap_or(1_000);
                         SoundInstruction::Silence(Duration::from_millis(millis))
                     }
-                    "play_for" => {
+                    "finish_after" => {
                         let millis = map
                             .get("millis")
                             .and_then(Value::as_number)
                             .and_then(serde_json::Number::as_u64)
                             .unwrap_or(1_000);
                         let file = map.get("file").and_then(Value::as_str).unwrap();
-                        SoundInstruction::PlayFor(Duration::from_millis(millis), file.to_string())
+                        SoundInstruction::FinishAfter(
+                            Duration::from_millis(millis),
+                            file.to_string(),
+                        )
                     }
                     "speak_number" => {
                         let number = map
@@ -299,7 +302,6 @@ impl<'de> serde::Deserialize<'de> for SoundInstruction {
                     "error_sound" => SoundInstruction::ErrorSound,
                     "empty_sound" => SoundInstruction::EmptySound,
                     unknown => {
-                        println!("here??????");
                         return Err(D::Error::custom(format!(
                             "unknown instruction: {}",
                             unknown
@@ -340,9 +342,9 @@ impl Serialize for SoundInstruction {
                 map.serialize_entry("millis", &millis)?;
                 map.end()
             }
-            SoundInstruction::PlayFor(duration, file) => {
+            SoundInstruction::FinishAfter(duration, file) => {
                 let mut map = serializer.serialize_map(Some(2))?;
-                map.serialize_entry("i", "play_for")?;
+                map.serialize_entry("i", "finish_after")?;
                 let millis: u64 = duration.as_millis().try_into().unwrap();
                 map.serialize_entry("millis", &millis)?;
                 map.serialize_entry("file", file)?;
@@ -461,7 +463,7 @@ impl SoundInstruction {
             }
             Self::PlayFile(_)
             | Self::Silence(_)
-            | Self::PlayFor(_, _)
+            | Self::FinishAfter(_, _)
             | Self::SpeakNumber(_)
             | Self::SineWave(_)
             | Self::ErrorSound
@@ -563,8 +565,9 @@ mod tests {
     }
 
     #[test]
-    fn play_for() {
-        let instr = SoundInstruction::PlayFor(Duration::from_millis(1500), "loop.mp3".to_string());
+    fn finish_after() {
+        let instr =
+            SoundInstruction::FinishAfter(Duration::from_millis(1500), "loop.mp3".to_string());
         assert_eq!(round_trip(&instr), instr);
     }
 
