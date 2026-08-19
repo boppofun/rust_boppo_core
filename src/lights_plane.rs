@@ -22,7 +22,10 @@ mod coordinates;
 mod rectangle_builder;
 
 pub use circle_builder::CircleBuilder;
-pub use coordinates::*;
+pub use coordinates::{
+    BOTTOMMOST_LIGHT_Y, BUTTON_LOCATIONS, LEFTMOST_LIGHT_X, LIGHT_LOCATIONS,
+    LIGHTS_HORIZONTAL_SPAN, LIGHTS_VERTICAL_SPAN, RIGHTMOST_LIGHT_X, TOPMOST_LIGHT_Y,
+};
 pub use rectangle_builder::RectangleBuilder;
 
 /// Returns a [`CircleBuilder`] for drawing a circle at `(x, y)` with the given `color` and `radius`.
