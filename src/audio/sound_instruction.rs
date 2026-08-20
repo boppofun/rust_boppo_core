@@ -75,12 +75,12 @@ pub enum SoundInstruction {
     ///
     /// JSON Representation: `{"i": "silence", "millis": 1500}`
     Silence(Duration),
-    /// Play an audio until the specified duration.
+    /// Play an audio for the specified duration.
     ///
     /// JSON Representation: `{"i": "finish_after", "file": "loop.mp3", "millis": 1500}`
     ///
     /// Useful for canceling long loop files.
-    FinishAfter(Duration, String),
+    FinishAfter(Duration, Box<SoundInstruction>),
     /// Speak a number aloud using the stitched together sound files.
     ///
     /// The number is spoken in the system language.
@@ -195,10 +195,13 @@ impl<'de> serde::Deserialize<'de> for SoundInstruction {
                             .and_then(Value::as_number)
                             .and_then(serde_json::Number::as_u64)
                             .unwrap_or(1_000);
-                        let file = map.get("file").and_then(Value::as_str).unwrap();
+                        let file = map
+                            .get("file")
+                            .and_then(Value::as_str)
+                            .ok_or(D::Error::custom("finish_after requires file field"))?;
                         SoundInstruction::FinishAfter(
                             Duration::from_millis(millis),
-                            file.to_string(),
+                            Box::new(SoundInstruction::PlayFile(file.to_string())),
                         )
                     }
                     "speak_number" => {
@@ -336,7 +339,7 @@ impl Serialize for SoundInstruction {
                 map.end()
             }
             SoundInstruction::Silence(duration) => {
-                let mut map = serializer.serialize_map(Some(2))?;
+                let mut map = serializer.serialize_map(Some(3))?;
                 map.serialize_entry("i", "silence")?;
                 let millis: u64 = duration.as_millis().try_into().unwrap();
                 map.serialize_entry("millis", &millis)?;
@@ -566,8 +569,10 @@ mod tests {
 
     #[test]
     fn finish_after() {
-        let instr =
-            SoundInstruction::FinishAfter(Duration::from_millis(1500), "loop.mp3".to_string());
+        let instr = SoundInstruction::FinishAfter(
+            Duration::from_millis(1500),
+            Box::new(SoundInstruction::PlayFile("loop.mp3".to_string())),
+        );
         assert_eq!(round_trip(&instr), instr);
     }
 

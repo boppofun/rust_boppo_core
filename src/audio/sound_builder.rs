@@ -67,8 +67,8 @@ impl SoundBuilder {
     /// Play an audio for `duration`.
     ///
     /// Useful for canceling long loop files.
-    pub fn finish_after(duration: Duration, file: &str) -> Self {
-        Self(SoundInstruction::FinishAfter(duration, file.to_string()))
+    pub fn finish_after(duration: Duration, sound: SoundInstruction) -> Self {
+        Self(SoundInstruction::FinishAfter(duration, Box::new(sound)))
     }
 
     /// Speak a number aloud.
