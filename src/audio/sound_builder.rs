@@ -67,11 +67,8 @@ impl SoundBuilder {
     /// Plays an audio for a maximum of duration.
     ///
     /// Useful for ending long sounds early.
-    pub fn finish_after(duration: Duration, sound: SoundBuilder) -> Self {
-        Self(SoundInstruction::FinishAfter(
-            duration,
-            Box::new(sound.into()),
-        ))
+    pub fn finish_after(self, duration: Duration) -> Self {
+        Self(SoundInstruction::FinishAfter(duration, Box::new(self.0)))
     }
 
     /// Speak a number aloud.
