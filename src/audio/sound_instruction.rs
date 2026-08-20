@@ -75,7 +75,7 @@ pub enum SoundInstruction {
     ///
     /// JSON Representation: `{"i": "silence", "millis": 1500}`
     Silence(Duration),
-    /// Play a sound for the specified duration.
+    /// Play a sound for a maximum of `millis`.
     ///
     /// JSON Representation: `{"i": "finish_after", "sound": "loop.mp3", "millis": 1500}`
     ///
@@ -194,7 +194,7 @@ impl<'de> serde::Deserialize<'de> for SoundInstruction {
                             .get("millis")
                             .and_then(Value::as_number)
                             .and_then(serde_json::Number::as_u64)
-                            .unwrap_or(1_000);
+                            .ok_or(D::Error::custom("finish_after requires millis field"))?;
                         let sound_json = map
                             .remove("sound")
                             .ok_or(D::Error::custom("finish_after requires sound field"))?;
@@ -340,7 +340,7 @@ impl Serialize for SoundInstruction {
                 map.end()
             }
             SoundInstruction::Silence(duration) => {
-                let mut map = serializer.serialize_map(Some(3))?;
+                let mut map = serializer.serialize_map(Some(2))?;
                 map.serialize_entry("i", "silence")?;
                 let millis: u64 = duration.as_millis().try_into().unwrap();
                 map.serialize_entry("millis", &millis)?;

@@ -64,11 +64,14 @@ impl SoundBuilder {
         Self(SoundInstruction::Silence(duration))
     }
 
-    /// Play an audio for `duration`.
+    /// Plays an audio for a maximum of duration.
     ///
-    /// Useful for canceling long loop files.
-    pub fn finish_after(duration: Duration, sound: SoundInstruction) -> Self {
-        Self(SoundInstruction::FinishAfter(duration, Box::new(sound)))
+    /// Useful for ending long sounds early.
+    pub fn finish_after(duration: Duration, sound: SoundBuilder) -> Self {
+        Self(SoundInstruction::FinishAfter(
+            duration,
+            Box::new(sound.into()),
+        ))
     }
 
     /// Speak a number aloud.
