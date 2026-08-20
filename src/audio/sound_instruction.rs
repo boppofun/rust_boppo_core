@@ -79,7 +79,7 @@ pub enum SoundInstruction {
     ///
     /// JSON Representation: `{"i": "finish_after", "sound": "loop.mp3", "millis": 1500}`
     ///
-    /// Useful for canceling long loop files.
+    /// Useful for ending long sounds early.
     FinishAfter(Duration, Box<SoundInstruction>),
     /// Speak a number aloud using the stitched together sound files.
     ///
