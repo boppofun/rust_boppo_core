@@ -75,9 +75,9 @@ pub enum SoundInstruction {
     ///
     /// JSON Representation: `{"i": "silence", "millis": 1500}`
     Silence(Duration),
-    /// Play an audio for the specified duration.
+    /// Play a sound for the specified duration.
     ///
-    /// JSON Representation: `{"i": "finish_after", "file": "loop.mp3", "millis": 1500}`
+    /// JSON Representation: `{"i": "finish_after", "sound": "loop.mp3", "millis": 1500}`
     ///
     /// Useful for canceling long loop files.
     FinishAfter(Duration, Box<SoundInstruction>),
@@ -195,13 +195,14 @@ impl<'de> serde::Deserialize<'de> for SoundInstruction {
                             .and_then(Value::as_number)
                             .and_then(serde_json::Number::as_u64)
                             .unwrap_or(1_000);
-                        let file = map
-                            .get("file")
-                            .and_then(Value::as_str)
-                            .ok_or(D::Error::custom("finish_after requires file field"))?;
+                        let sound_json = map
+                            .remove("sound")
+                            .ok_or(D::Error::custom("finish_after requires sound field"))?;
+                        let sound: SoundInstruction =
+                            serde_json::from_value(sound_json).map_err(D::Error::custom)?;
                         SoundInstruction::FinishAfter(
                             Duration::from_millis(millis),
-                            Box::new(SoundInstruction::PlayFile(file.to_string())),
+                            Box::new(sound),
                         )
                     }
                     "speak_number" => {
@@ -345,12 +346,12 @@ impl Serialize for SoundInstruction {
                 map.serialize_entry("millis", &millis)?;
                 map.end()
             }
-            SoundInstruction::FinishAfter(duration, file) => {
-                let mut map = serializer.serialize_map(Some(2))?;
+            SoundInstruction::FinishAfter(duration, sound) => {
+                let mut map = serializer.serialize_map(Some(3))?;
                 map.serialize_entry("i", "finish_after")?;
                 let millis: u64 = duration.as_millis().try_into().unwrap();
                 map.serialize_entry("millis", &millis)?;
-                map.serialize_entry("file", file)?;
+                map.serialize_entry("sound", sound)?;
                 map.end()
             }
             SoundInstruction::SpeakNumber(number) => {
