@@ -1,9 +1,9 @@
-use std::{borrow::Cow, path::PathBuf, str::FromStr, time::Duration};
+use std::time::Duration;
 
 use serde::{Serialize, Serializer, ser::SerializeMap};
 use serde_json::from_value;
 
-use crate::{audio::NumberSpeakerConfig, language::LanguageTag};
+use crate::audio::NumberSpeakerConfig;
 
 /// Instructions on how to create a sound for playback.
 #[derive(Debug, PartialEq, Clone, Default)]
@@ -231,30 +231,11 @@ impl<'de> serde::Deserialize<'de> for SoundInstruction {
                             .ok_or_else(|| {
                                 D::Error::custom("speak_number_with requires number field")
                             })?;
-                        let config_map =
-                            map.get("config")
-                                .and_then(Value::as_object)
-                                .ok_or_else(|| {
-                                    D::Error::custom("speak_number_with requires config field")
-                                })?;
-                        let config = NumberSpeakerConfig {
-                            prefix: config_map
-                                .get("prefix")
-                                .and_then(Value::as_str)
-                                // `PathBuf::from_str` is infallible.
-                                .and_then(|s| PathBuf::from_str(s).ok())
-                                .ok_or_else(|| D::Error::missing_field("prefix"))?,
-                            extension: config_map
-                                .get("extension")
-                                .and_then(Value::as_str)
-                                .map(|s| Cow::Owned(s.to_string()))
-                                .ok_or_else(|| D::Error::missing_field("extension"))?,
-                            language: config_map
-                                .get("language")
-                                .and_then(Value::as_str)
-                                .and_then(LanguageTag::new)
-                                .ok_or_else(|| D::Error::missing_field("extension"))?,
-                        };
+                        let config_json = map.remove("config").ok_or_else(|| {
+                            D::Error::custom("speak_number_with requires config field")
+                        })?;
+                        let config =
+                            serde_json::from_value(config_json).map_err(D::Error::custom)?;
                         Self::SpeakNumberWith(number, config)
                     }
                     "timed_commands" => {

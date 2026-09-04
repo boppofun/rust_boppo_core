@@ -44,7 +44,7 @@ mod test {
             serde_json::from_str(
                 r#"{"prefix": "numbers", "extension": "qoa", "language": "en-US"}"#
             )
-            .expect("should be able to serialize")
+            .expect("should be able to deserialize")
         );
     }
 }
