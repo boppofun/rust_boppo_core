@@ -1,7 +1,9 @@
-use std::time::Duration;
+use std::{borrow::Cow, path::PathBuf, str::FromStr, time::Duration};
 
 use serde::{Serialize, Serializer, ser::SerializeMap};
 use serde_json::from_value;
+
+use crate::{audio::NumberSpeakerConfig, language::LanguageTag};
 
 /// Instructions on how to create a sound for playback.
 #[derive(Debug, PartialEq, Clone, Default)]
@@ -89,6 +91,14 @@ pub enum SoundInstruction {
     ///
     /// Requires firmware version 260 or greater.
     SpeakNumber(i64),
+    /// Like [`SpeakNumber`], but allows you to choose where to look for voice files, and which
+    /// language to speak.
+    ///
+    /// See [`NumberSpeakerConfig`] documentation.
+    ///
+    /// JSON representation: `{"i": "speak_number_with", "number": 42, "config": {"prefix":
+    /// "numbers", "extension": "mp3", "language": "en-US"}}`
+    SpeakNumberWith(i64, NumberSpeakerConfig),
     /// Timed Commands allow executing commands at specific times during the playback of a sound.
     ///
     /// JSON representation: `{"i": "timed_commands", "commands_path": <PATH>, "sound": <SoundInstruction>, "commands": ["MILLIS ..."]}`
@@ -213,7 +223,40 @@ impl<'de> serde::Deserialize<'de> for SoundInstruction {
                             .ok_or(D::Error::custom("speak_number requires number field"))?;
                         SoundInstruction::SpeakNumber(number)
                     }
-
+                    "speak_number_with" => {
+                        let number = map
+                            .get("number")
+                            .and_then(Value::as_number)
+                            .and_then(serde_json::Number::as_i64)
+                            .ok_or_else(|| {
+                                D::Error::custom("speak_number_with requires number field")
+                            })?;
+                        let config_map =
+                            map.get("config")
+                                .and_then(Value::as_object)
+                                .ok_or_else(|| {
+                                    D::Error::custom("speak_number_with requires config field")
+                                })?;
+                        let config = NumberSpeakerConfig {
+                            prefix: config_map
+                                .get("prefix")
+                                .and_then(Value::as_str)
+                                // `PathBuf::from_str` is infallible.
+                                .and_then(|s| PathBuf::from_str(s).ok())
+                                .ok_or_else(|| D::Error::missing_field("prefix"))?,
+                            extension: config_map
+                                .get("extension")
+                                .and_then(Value::as_str)
+                                .map(|s| Cow::Owned(s.to_string()))
+                                .ok_or_else(|| D::Error::missing_field("extension"))?,
+                            language: config_map
+                                .get("language")
+                                .and_then(Value::as_str)
+                                .and_then(LanguageTag::new)
+                                .ok_or_else(|| D::Error::missing_field("extension"))?,
+                        };
+                        Self::SpeakNumberWith(number, config)
+                    }
                     "timed_commands" => {
                         let commands_path = map
                             .get("commands_path")
@@ -360,6 +403,13 @@ impl Serialize for SoundInstruction {
                 map.serialize_entry("number", number)?;
                 map.end()
             }
+            SoundInstruction::SpeakNumberWith(number, config) => {
+                let mut map = serializer.serialize_map(Some(3))?;
+                map.serialize_entry("i", "speak_number_with")?;
+                map.serialize_entry("number", number)?;
+                map.serialize_entry("config", config)?;
+                map.end()
+            }
             SoundInstruction::Controller(sound, params) => {
                 let mut len = 3;
                 if params.speed.is_some() {
@@ -469,6 +519,7 @@ impl SoundInstruction {
             | Self::Silence(_)
             | Self::FinishAfter(_, _)
             | Self::SpeakNumber(_)
+            | Self::SpeakNumberWith(_, _)
             | Self::SineWave(_)
             | Self::ErrorSound
             | Self::EmptySound => {}
@@ -580,6 +631,12 @@ mod tests {
     #[test]
     fn speak_number() {
         let instr = SoundInstruction::SpeakNumber(-42);
+        assert_eq!(round_trip(&instr), instr);
+    }
+
+    #[test]
+    fn speak_number_with() {
+        let instr = SoundInstruction::SpeakNumberWith(-42, NumberSpeakerConfig::default());
         assert_eq!(round_trip(&instr), instr);
     }
 
