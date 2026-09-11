@@ -3,7 +3,9 @@ use std::time::Duration;
 use serde::{Serialize, Serializer, ser::SerializeMap};
 use serde_json::from_value;
 
-use crate::audio::NumberSpeakerConfig;
+mod speak_number;
+
+pub use speak_number::SpeakNumberConfig;
 
 /// Instructions on how to create a sound for playback.
 #[derive(Debug, PartialEq, Clone, Default)]
@@ -98,7 +100,7 @@ pub enum SoundInstruction {
     ///
     /// Requires firmware version 260 or greater.
     ///
-    SpeakNumber(i64, Option<NumberSpeakerConfig>),
+    SpeakNumber(i64, Option<SpeakNumberConfig>),
     /// Timed Commands allow executing commands at specific times during the playback of a sound.
     ///
     /// JSON representation: `{"i": "timed_commands", "commands_path": <PATH>, "sound": <SoundInstruction>, "commands": ["MILLIS ..."]}`
@@ -606,7 +608,7 @@ mod tests {
 
     #[test]
     fn speak_number_default_config() {
-        let instr = SoundInstruction::SpeakNumber(-42, Some(NumberSpeakerConfig::default()));
+        let instr = SoundInstruction::SpeakNumber(-42, Some(SpeakNumberConfig::default()));
         assert_eq!(round_trip(&instr), instr);
     }
 
@@ -614,7 +616,7 @@ mod tests {
     fn speak_number_alt_config() {
         let instr = SoundInstruction::SpeakNumber(
             -42,
-            Some(NumberSpeakerConfig {
+            Some(SpeakNumberConfig {
                 prefix: PathBuf::from_str("vo").unwrap(),
                 extension: Cow::Borrowed("mp3"),
                 language: LanguageTag::english(),

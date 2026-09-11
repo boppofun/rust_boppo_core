@@ -1,5 +1,5 @@
 //! [`SoundBuilder`] and related types for constructing sounds before playback.
-use crate::audio::NumberSpeakerConfig;
+use crate::audio::sound_instruction::SpeakNumberConfig;
 use crate::internal::PLAY_SOUND_INSTRUCTION_FN;
 
 use super::Controller;
@@ -81,7 +81,7 @@ impl SoundBuilder {
 
     /// Like [`SoundBuilder::speak_number`] but allows you to configure where voice files are found
     /// using a [`NumberSpeakerConfig`]. See documentation of [`NumberSpeakerConfig`] for details.
-    pub fn speak_number_with_config(n: i64, config: NumberSpeakerConfig) -> Self {
+    pub fn speak_number_with_config(n: i64, config: SpeakNumberConfig) -> Self {
         Self(SoundInstruction::SpeakNumber(n, Some(config)))
     }
 
