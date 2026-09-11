@@ -86,7 +86,7 @@ pub enum SoundInstruction {
     /// Speak a number aloud using the stitched together sound files.
     ///
     /// Also takes an optional [`NumberSpeakerConfig`] to configure where to look for files, which
-    /// requires firmware version 310 or greater.
+    /// requires firmware version 320 or greater.
     ///
     /// See [`NumberSpeakerConfig`] documentation.
     ///
@@ -97,7 +97,6 @@ pub enum SoundInstruction {
     /// "numbers", "extension": "mp3", "language": "en-US"}}`
     ///
     /// Requires firmware version 260 or greater.
-    ///
     ///
     SpeakNumber(i64, Option<NumberSpeakerConfig>),
     /// Timed Commands allow executing commands at specific times during the playback of a sound.
