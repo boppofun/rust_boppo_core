@@ -233,16 +233,17 @@ mod tests {
         );
     }
 
-    // #[test]
-    // fn serde_round_trip() {
-    //     assert_eq!(
-    //         LanguageTag::english(),
-    //         serde_json::from_str(&LanguageTag::english()).expect("should be able to deserialize")
-    //     );
-    //     assert_eq!(
-    //         LanguageTag::portuguese(),
-    //         serde_json::from_str(&LanguageTag::portuguese())
-    //             .expect("should be able to deserialize")
-    //     );
-    // }
+    #[test]
+    fn serde_round_trip() {
+        assert_eq!(
+            LanguageTag::english(),
+            serde_json::from_str(&format!("\"{}\"", &LanguageTag::english()))
+                .expect("should be able to deserialize")
+        );
+        assert_eq!(
+            LanguageTag::portuguese(),
+            serde_json::from_str(&format!("\"{}\"", &LanguageTag::portuguese()))
+                .expect("should be able to deserialize")
+        );
+    }
 }
