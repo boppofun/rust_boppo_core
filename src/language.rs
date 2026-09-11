@@ -3,6 +3,8 @@ use std::{fmt::Display, ops::Deref, str::FromStr};
 
 use std::sync::Mutex;
 
+use serde::de::Visitor;
+
 pub(crate) static SYSTEM_LANGUAGE: Mutex<LanguageTag> = Mutex::new(LanguageTag::US_ENGLISH);
 
 /// Returns the current system language as a [`LanguageTag`].
@@ -149,6 +151,41 @@ impl Display for LanguageTag {
     }
 }
 
+impl serde::Serialize for LanguageTag {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.collect_str(&**self)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for LanguageTag {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct LanguageTagVisitor;
+
+        impl Visitor<'_> for LanguageTagVisitor {
+            type Value = LanguageTag;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("any valid LanguageTag")
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                LanguageTag::from_str(v).map_err(|e| E::custom(e))
+            }
+        }
+
+        deserializer.deserialize_str(LanguageTagVisitor)
+    }
+}
+
 #[derive(Debug)]
 /// Failed to parse a [`LanguageTag`] from a string.
 pub struct LanguageTagParseError;
@@ -177,5 +214,36 @@ mod tests {
         assert_eq!(&*LanguageTag::new("EN-us").unwrap(), "en-US");
         assert_eq!(&*LanguageTag::new("EN-US").unwrap(), "en-US");
         assert_eq!(&*LanguageTag::new("en-US").unwrap(), "en-US");
+    }
+
+    #[test]
+    fn serializing() {
+        assert_eq!(
+            // JSON string object
+            "\"en-US\"",
+            serde_json::to_string(&LanguageTag::english()).expect("should be able to serialize")
+        );
+    }
+
+    #[test]
+    fn deserializing() {
+        assert_eq!(
+            LanguageTag::english(),
+            serde_json::from_str("\"en-US\"").expect("should be able to deserialize")
+        );
+    }
+
+    #[test]
+    fn serde_round_trip() {
+        assert_eq!(
+            LanguageTag::english(),
+            serde_json::from_str(&format!("\"{}\"", &LanguageTag::english()))
+                .expect("should be able to deserialize")
+        );
+        assert_eq!(
+            LanguageTag::portuguese(),
+            serde_json::from_str(&format!("\"{}\"", &LanguageTag::portuguese()))
+                .expect("should be able to deserialize")
+        );
     }
 }
