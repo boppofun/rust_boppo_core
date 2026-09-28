@@ -1,7 +1,10 @@
 //! Events that occur when a top Button is pressed or released.
 //!
 //! This module provides the [`ButtonEvents`] and [`ButtonEvent`] structs.
-use std::{future::Future, pin::pin};
+use std::future::Future;
+
+use embassy_futures::select::{Either, select};
+use futures::FutureExt as _;
 
 use std::time::{Duration, Instant};
 
@@ -105,6 +108,25 @@ pub struct ButtonEvents {
     event_type_filter: EventTypeFilter,
 }
 
+/// Polls `future` and then `event` until one of them completes.
+///
+/// The `*_or_output`/`*_or_completed` methods use this instead of being `async fn`s because an
+/// `async fn` that takes a future and awaits it stores that future twice in its own future
+/// (once as the argument and once as the awaited local). Nesting them (e.g.
+/// `peek_next_or_completed` calling `peek_next_or_output`) multiplied an activity's future
+/// size, and the stack space needed to create it, several times over. `embassy_futures`'s
+/// `select` stores both futures in place (unlike `futures::future::select`, which needs them
+/// to be `Unpin`).
+fn or_button_event<F: Future>(
+    future: F,
+    event: impl Future<Output = ButtonEvent>,
+) -> impl Future<Output = Result<ButtonEvent, F::Output>> {
+    select(future, event).map(|either| match either {
+        Either::First(output) => Err(output),
+        Either::Second(event) => Ok(event),
+    })
+}
+
 impl ButtonEvents {
     pub(crate) fn from_receiver(
         button_event_receiver: broadcast::Receiver<ButtonEvent>,
@@ -190,17 +212,14 @@ impl ButtonEvents {
     ///     Err(f_out) => println!("{f_out}"),
     /// }
     /// ```
-    pub async fn next_or_output<F>(&mut self, future: F) -> Result<ButtonEvent, F::Output>
+    pub fn next_or_output<F>(
+        &mut self,
+        future: F,
+    ) -> impl Future<Output = Result<ButtonEvent, F::Output>>
     where
         F: Future,
     {
-        let future = pin!(future);
-        let next_fut = pin!(self.next());
-        let either = futures::future::select(future, next_fut).await;
-        match either {
-            futures::future::Either::Left((output, _future)) => Err(output),
-            futures::future::Either::Right((button_event, _next_fut)) => Ok(button_event),
-        }
+        or_button_event(future, self.next())
     }
 
     /// Returns [`Some`] if `self` receives an event before `timeout` elapses. Otherwise,
@@ -216,11 +235,11 @@ impl ButtonEvents {
 
     /// Runs `future` while waiting for a new [`ButtonEvent`], and returns [`Some`] if an event
     /// occurs before `future` completes. Otherwise, this function returns [`None`].
-    pub async fn next_or_completed<F>(&mut self, future: F) -> Option<ButtonEvent>
+    pub fn next_or_completed<F>(&mut self, future: F) -> impl Future<Output = Option<ButtonEvent>>
     where
         F: Future,
     {
-        self.next_or_output(future).await.ok()
+        self.next_or_output(future).map(Result::ok)
     }
 
     /// The same as [`ButtonEvents::next_or_output`], but does not consume an event if one is
@@ -251,17 +270,14 @@ impl ButtonEvents {
     ///     Err(f_out) => println!("{f_out}"),
     /// }
     /// ```
-    pub async fn peek_next_or_output<F>(&mut self, future: F) -> Result<ButtonEvent, F::Output>
+    pub fn peek_next_or_output<F>(
+        &mut self,
+        future: F,
+    ) -> impl Future<Output = Result<ButtonEvent, F::Output>>
     where
         F: Future,
     {
-        let future = pin!(future);
-        let next_fut = pin!(self.peek_next());
-        let either = futures::future::select(future, next_fut).await;
-        match either {
-            futures::future::Either::Left((button_event, _future)) => Err(button_event),
-            futures::future::Either::Right((output, _next_fut)) => Ok(output),
-        }
+        or_button_event(future, self.peek_next())
     }
 
     /// Like [`next_or_timeout_after`][ButtonEvents::next_or_timeout_after], but peeks the event
@@ -276,11 +292,14 @@ impl ButtonEvents {
     }
 
     /// Cancels the future if a button event is generated.
-    pub async fn peek_next_or_completed<F>(&mut self, future: F) -> Option<ButtonEvent>
+    pub fn peek_next_or_completed<F>(
+        &mut self,
+        future: F,
+    ) -> impl Future<Output = Option<ButtonEvent>>
     where
         F: Future,
     {
-        self.peek_next_or_output(future).await.ok()
+        self.peek_next_or_output(future).map(Result::ok)
     }
 
     /// Waits for the next [`ButtonEvent`] and returns it without consuming it.
