@@ -72,3 +72,17 @@ fn test_from_buttons() {
     let lights: Lights = Buttons::all().into();
     assert_eq!(lights, Lights::all());
 }
+
+#[test]
+fn test_iter_exact_size_and_reverse() {
+    let lights = Lights::from_indices([1_usize, 6, 39]);
+    let mut iter = lights.into_iter();
+    assert_eq!(iter.len(), 3);
+    assert_eq!(iter.next_back(), Some((Button::B9, LightDir::Bottom)));
+    assert_eq!(iter.next(), Some((Button::B0, LightDir::Left)));
+    assert_eq!(iter.len(), 1);
+    assert_eq!(iter.next_back(), Some((Button::B1, LightDir::Right)));
+    assert_eq!(iter.len(), 0);
+    assert_eq!(iter.next(), None);
+    assert_eq!(iter.next_back(), None);
+}

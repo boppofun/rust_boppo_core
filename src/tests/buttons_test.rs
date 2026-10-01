@@ -70,3 +70,12 @@ fn test_rotate_180() {
     assert_eq!(Buttons::all().rotate_180(), Buttons::all());
     assert_eq!(Buttons::none().rotate_180(), Buttons::none());
 }
+
+#[test]
+fn test_iter_exact_size() {
+    let mut iter = Buttons::row(Row::Top).into_iter();
+    assert_eq!(iter.len(), 5);
+    iter.next();
+    iter.next_back();
+    assert_eq!(iter.len(), 3);
+}

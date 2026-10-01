@@ -270,7 +270,31 @@ impl Iterator for LightsIter {
             ))
         }
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.bits.count_ones() as usize;
+        (len, Some(len))
+    }
 }
+
+impl DoubleEndedIterator for LightsIter {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        if self.bits == 0 {
+            None
+        } else {
+            let index = self.bits.ilog2() as usize;
+            self.bits ^= 1u64 << index;
+            Some((
+                Button::from_index(index / 4),
+                LightDir::from_index(index % 4).unwrap(),
+            ))
+        }
+    }
+}
+
+impl ExactSizeIterator for LightsIter {}
+
+impl std::iter::FusedIterator for LightsIter {}
 
 impl std::iter::IntoIterator for Lights {
     type Item = (Button, LightDir);

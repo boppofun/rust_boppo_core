@@ -374,6 +374,11 @@ impl Iterator for ButtonsIter {
             Some(Button::from_index(next))
         }
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.bits.count_ones() as usize;
+        (len, Some(len))
+    }
 }
 
 impl DoubleEndedIterator for ButtonsIter {
@@ -387,6 +392,10 @@ impl DoubleEndedIterator for ButtonsIter {
         }
     }
 }
+
+impl ExactSizeIterator for ButtonsIter {}
+
+impl std::iter::FusedIterator for ButtonsIter {}
 
 struct Indices {
     bits: u16,
