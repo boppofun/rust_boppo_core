@@ -17,7 +17,7 @@ use crate::lights::LightDir;
 /// 0 1 2 3 4
 /// 5 6 7 8 9
 /// ```
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(u8)]
 pub enum Button {
     /// [`Row::Top`], [`Column::C0`]
@@ -300,7 +300,7 @@ impl<'de> Deserialize<'de> for Button {
 
 /// A row of [`Button`]s.
 ///
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(u8)]
 pub enum Row {
     /// [`Button::B0`] through [`Button::B4`]
@@ -358,7 +358,7 @@ impl Row {
 /// [`Column::C0`] is the leftmost column, and [`Column::C4`] is the rightmost column.
 ///
 #[repr(u8)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[expect(missing_docs, reason = "Variants documented in enum")]
 pub enum Column {
     C0 = 0,

@@ -244,7 +244,7 @@ impl<T: Into<SoundBuilder>> From<Vec<T>> for SoundBuilder {
 /// let (sound, ctrl) = SoundBuilder::file("music.mp3")
 ///     .controller_with_opts(ControllerOpts::new().volume(0.5).pause());
 /// ```
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct ControllerOpts {
     /// Initial playback speed multiplier. Defaults to `1.0`.
     speed: Option<f32>,

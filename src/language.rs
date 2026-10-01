@@ -28,7 +28,7 @@ pub fn system_language() -> LanguageTag {
 /// * two character language code (e.g., en for English, zh for Chinese, es for Spanish) — based on ISO 639-1
 /// * '-' hyphen character
 /// * two character Region (or country) code (e.g., US for United States, CN for China, ES for Spain) — based on ISO 3166-1 alpha-2
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct LanguageTag {
     tag: [u8; 5],
 }
@@ -186,7 +186,7 @@ impl<'de> serde::Deserialize<'de> for LanguageTag {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// Failed to parse a [`LanguageTag`] from a string.
 pub struct LanguageTagParseError;
 

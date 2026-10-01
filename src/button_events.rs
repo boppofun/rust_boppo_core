@@ -14,7 +14,7 @@ use tokio::sync::broadcast::{self, error::TryRecvError};
 use crate::{Button, Buttons, internal};
 
 /// A notification that a top button has been pressed or released
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct ButtonEvent {
     // From least significant:
     // 4 bits: the button index of the changed button

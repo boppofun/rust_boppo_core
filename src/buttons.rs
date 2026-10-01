@@ -9,7 +9,7 @@ use crate::{Column, Lights, Row};
 use super::button::Button;
 use std::convert::TryInto;
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
 /// A selection of multiple [`Button`s][`Button`].
 pub struct Buttons {
     // bitset where lowest order bit represents the first button
@@ -357,6 +357,7 @@ impl FromIterator<Button> for Buttons {
 }
 
 /// An iterator over the [`Button`]s in a [`Buttons`] selection, in index order.
+#[derive(Debug, Clone)]
 pub struct ButtonsIter {
     bits: u16,
 }

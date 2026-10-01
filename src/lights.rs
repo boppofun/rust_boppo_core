@@ -17,7 +17,7 @@ use std::convert::TryInto;
 /// * "Left"
 /// * "Right"
 /// * "Bottom"
-#[derive(Debug, Copy, Clone, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
 pub struct Lights {
     // bitset where lowest order bit represents the first button
     bits: u64,
@@ -250,6 +250,7 @@ impl std::ops::Not for Lights {
 }
 
 /// An iterator over the `(Button, LightDir)` pairs in a [`Lights`] selection, in index order.
+#[derive(Debug, Clone)]
 pub struct LightsIter {
     bits: u64,
 }
@@ -328,7 +329,7 @@ impl DoubleEndedIterator for Indices {
 /// When [`Row::Top`][crate::Row::Top] (e.g. [`Button::B0`]) is further away from the
 /// user than [`Row::Bottom`][crate::Row::Bottom] (e.g. [`Button::B5`]), [`LightDir::Top`] is
 /// also the furthest from the user and [`LightDir::Bottom`] is the closest.
-#[derive(Debug, Copy, Clone, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
 #[repr(u8)]
 #[expect(
     missing_docs,

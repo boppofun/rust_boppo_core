@@ -115,7 +115,7 @@ impl Default for ShortDuration {
 }
 
 /// Error returned when a [`std::time::Duration`] is too large to fit in a [`ShortDuration`].
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct OutOfBoundsError;
 
 impl std::fmt::Display for OutOfBoundsError {

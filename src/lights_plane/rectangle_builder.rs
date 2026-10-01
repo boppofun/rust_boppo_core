@@ -3,6 +3,7 @@ use crate::{Framebuffer, Lights, color, lights_plane::LIGHT_LOCATIONS};
 /// Builder for drawing a rectangle of lights on a [`Framebuffer`].
 ///
 /// Created by [`rectangle`][super::rectangle]. Call [`draw`][RectangleBuilder::draw] to apply.
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RectangleBuilder {
     color: color::RGB,
     bottom_left: (f32, f32),

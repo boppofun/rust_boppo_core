@@ -7,7 +7,7 @@ use std::f32::consts::PI;
 /// `InOut` describes an easing that starts slow, speeds up in the middle, and ends slow.
 ///
 /// See easings.net for graphical examples.
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 #[expect(
     missing_docs,
     reason = "In/Out/InOut described in enum documentation. Not feasible to use text to describe variants."
