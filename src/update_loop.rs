@@ -1,7 +1,20 @@
 //! Provides the [`Updatable`] trait for calling a function at a fixed interval.
 use crate::MainFramebuffer;
 
-use embassy_time::{Instant, Timer};
+use std::sync::atomic::{AtomicBool, Ordering};
+
+use embassy_time::{Duration, Instant, Timer};
+
+static REPORT_FPS: AtomicBool = AtomicBool::new(false);
+
+/// Turns on or off logging the frame rate and update times of every [`run`] loop, every 5
+/// seconds. Off by default.
+///
+/// Useful to check whether updates fit in the frame: if the max update time is longer than a
+/// frame, the frame rate drops below what was asked for.
+pub fn set_report_fps(enabled: bool) {
+    REPORT_FPS.store(enabled, Ordering::Relaxed);
+}
 
 /// Represents control flow for Update loops in the `run` function.
 #[derive(PartialEq, Eq, Debug)]
@@ -33,13 +46,15 @@ pub trait Updatable: Send {
 }
 
 /// Minimum time [`run`] sleeps between updates, even if an update takes longer than a frame.
-const MIN_SLEEP: embassy_time::Duration = embassy_time::Duration::from_millis(1);
+const MIN_SLEEP: Duration = Duration::from_millis(1);
 
 /// Call `update` on `updatable` in a loop at a rate of `frames_per_second` until
 /// `LoopControlFlow::Break` is returned by `updatable`.
 ///
 /// If an update takes longer than a frame, the next update still waits at least 1 ms so other
 /// tasks and the host get to run, and the frame rate drops.
+///
+/// To check how long updates take, turn on [`set_report_fps`].
 pub async fn run(updatable: &mut dyn Updatable, frames_per_second: u16) {
     // compute once the normal matching delay for `frames_per_second`
     let delay = embassy_time::Duration::from_millis((1000.0 / frames_per_second as f64) as u64);
@@ -48,26 +63,12 @@ pub async fn run(updatable: &mut dyn Updatable, frames_per_second: u16) {
     // before the first frame delay (the first delta_time will be shorter)
     let mut update_start = Instant::now();
 
-    const REPORT_FPS: bool = false;
-    let mut elapseds = Vec::new();
-    let mut last_fps_report = update_start;
+    let mut stats: Option<FrameStats> = None;
 
     // Actual update cycle loop
     'update_loop: loop {
         let now = Instant::now();
         let elapsed = now.duration_since(update_start);
-        if REPORT_FPS {
-            elapseds.push(elapsed.as_millis());
-            let time_since_last_report = now - last_fps_report;
-            if time_since_last_report >= embassy_time::Duration::from_secs(5) {
-                let fps = elapseds.len() as f32
-                    / (time_since_last_report.as_micros() as f32 / 1_000_000.0);
-                log::info!("fps: {}", fps);
-                log::info!("processing times (ms): {:?}", elapseds);
-                last_fps_report = now;
-                elapseds.clear();
-            }
-        }
         // Always sleep, even when the previous update overran the frame. Otherwise the loop never
         // yields and the host can't deliver events (button presses, exit, audio finished) or run
         // other tasks.
@@ -77,7 +78,7 @@ pub async fn run(updatable: &mut dyn Updatable, frames_per_second: u16) {
             .max(MIN_SLEEP);
         Timer::after(sleep_time).await;
 
-        let _flush_guard = MainFramebuffer::get().pause_auto_flush();
+        let flush_guard = MainFramebuffer::get().pause_auto_flush();
 
         // Immediately update the update_start instant to start tracking the next update cycle time
         let now = Instant::now();
@@ -86,10 +87,68 @@ pub async fn run(updatable: &mut dyn Updatable, frames_per_second: u16) {
         update_start = now;
 
         // Update the updatable and stop the cycle if the call returns a Break value
-        if updatable.update(delta_time.into()) == LoopControlFlow::Break {
+        let control_flow = updatable.update(delta_time.into());
+        drop(flush_guard);
+        if REPORT_FPS.load(Ordering::Relaxed) {
+            stats
+                .get_or_insert_with(|| FrameStats::new(update_start))
+                .add(update_start, Instant::now(), frames_per_second);
+        } else {
+            stats = None;
+        }
+        if control_flow == LoopControlFlow::Break {
             break 'update_loop;
         }
     }
+}
+
+/// Frame rate and update times collected by [`run`] when [`set_report_fps`] is on.
+struct FrameStats {
+    since: Instant,
+    frames: u32,
+    min: Duration,
+    max: Duration,
+    total: Duration,
+}
+
+impl FrameStats {
+    const REPORT_EVERY: Duration = Duration::from_secs(5);
+
+    fn new(since: Instant) -> FrameStats {
+        FrameStats {
+            since,
+            frames: 0,
+            min: Duration::MAX,
+            max: Duration::MIN,
+            total: Duration::MIN,
+        }
+    }
+
+    /// Records an update (including flushing the lights) that ran from `update_start` to `now`,
+    /// and logs and resets the stats every [`Self::REPORT_EVERY`].
+    fn add(&mut self, update_start: Instant, now: Instant, frames_per_second: u16) {
+        let update_time = now - update_start;
+        self.frames += 1;
+        self.min = self.min.min(update_time);
+        self.max = self.max.max(update_time);
+        self.total += update_time;
+        let period = now - self.since;
+        if period >= Self::REPORT_EVERY {
+            log::info!(
+                "update_loop: {:.1}/{} fps, update ms min/avg/max {:.1}/{:.1}/{:.1}",
+                self.frames as f32 / (period.as_micros() as f32 / 1_000_000.0),
+                frames_per_second,
+                ms(self.min),
+                ms(self.total) / self.frames as f32,
+                ms(self.max),
+            );
+            *self = FrameStats::new(now);
+        }
+    }
+}
+
+fn ms(d: Duration) -> f32 {
+    d.as_micros() as f32 / 1000.0
 }
 
 /// Run Updatables in series
@@ -209,5 +268,28 @@ mod tests {
             assert!(fut.as_mut().poll(&mut cx).is_pending());
         }
         assert_eq!(updates, 1);
+    }
+
+    #[test]
+    fn frame_stats_reset_after_report() {
+        let start = Instant::from_millis(0);
+        let mut stats = FrameStats::new(start);
+        let mut t = 0;
+        for update_ms in [10, 30, 20] {
+            stats.add(
+                Instant::from_millis(t),
+                Instant::from_millis(t + update_ms),
+                30,
+            );
+            t += 100;
+        }
+        assert_eq!(stats.frames, 3);
+        assert_eq!(stats.min, Duration::from_millis(10));
+        assert_eq!(stats.max, Duration::from_millis(30));
+        assert_eq!(stats.total, Duration::from_millis(60));
+
+        stats.add(Instant::from_millis(4_990), Instant::from_millis(5_000), 30);
+        assert_eq!(stats.frames, 0);
+        assert_eq!(stats.since, Instant::from_millis(5_000));
     }
 }
