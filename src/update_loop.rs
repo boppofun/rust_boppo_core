@@ -32,8 +32,14 @@ pub trait Updatable: Send {
     }
 }
 
+/// Minimum time [`run`] sleeps between updates, even if an update takes longer than a frame.
+const MIN_SLEEP: embassy_time::Duration = embassy_time::Duration::from_millis(1);
+
 /// Call `update` on `updatable` in a loop at a rate of `frames_per_second` until
 /// `LoopControlFlow::Break` is returned by `updatable`.
+///
+/// If an update takes longer than a frame, the next update still waits at least 1 ms so other
+/// tasks and the host get to run, and the frame rate drops.
 pub async fn run(updatable: &mut dyn Updatable, frames_per_second: u16) {
     // compute once the normal matching delay for `frames_per_second`
     let delay = embassy_time::Duration::from_millis((1000.0 / frames_per_second as f64) as u64);
@@ -62,11 +68,14 @@ pub async fn run(updatable: &mut dyn Updatable, frames_per_second: u16) {
                 elapseds.clear();
             }
         }
-        if elapsed <= delay {
-            let sleep_time = delay - elapsed;
-            // log::warn!("update_loop early: {} ms", sleep_time.as_millis());
-            Timer::after(sleep_time).await;
-        }
+        // Always sleep, even when the previous update overran the frame. Otherwise the loop never
+        // yields and the host can't deliver events (button presses, exit, audio finished) or run
+        // other tasks.
+        let sleep_time = delay
+            .checked_sub(elapsed)
+            .unwrap_or_default()
+            .max(MIN_SLEEP);
+        Timer::after(sleep_time).await;
 
         let _flush_guard = MainFramebuffer::get().pause_auto_flush();
 
@@ -171,5 +180,34 @@ where
 {
     fn update(&mut self, delta_time: std::time::Duration) -> LoopControlFlow {
         self(delta_time)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::pin::pin;
+    use std::task::{Context, Waker};
+
+    #[test]
+    fn run_yields_after_overrunning_update() {
+        let _ = crate::internal::LIGHTS.set(MainFramebuffer::new(|_| {}));
+        let mut updates = 0;
+        let mut updatable = |_| {
+            updates += 1;
+            // Take longer than the 10 ms frame
+            std::thread::sleep(std::time::Duration::from_millis(20));
+            LoopControlFlow::Continue
+        };
+        let mut cx = Context::from_waker(Waker::noop());
+        {
+            let mut fut = pin!(run(&mut updatable, 100));
+            // Sleeps before the first update
+            assert!(fut.as_mut().poll(&mut cx).is_pending());
+            std::thread::sleep(std::time::Duration::from_millis(15));
+            // Runs one update that overruns the frame, then must still yield
+            assert!(fut.as_mut().poll(&mut cx).is_pending());
+        }
+        assert_eq!(updates, 1);
     }
 }
