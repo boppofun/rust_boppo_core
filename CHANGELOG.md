@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- `internal::set_executor` now requires a `&'static Executor`.
+- `executor::spawn` panics if no executor has been set, instead of dereferencing a null pointer.
+
 ## [0.2.1](https://github.com/boppofun/rust_boppo_core/compare/v0.2.0...v0.2.1) - 2026-06-15
 
 - docs: various fixes and improvements
