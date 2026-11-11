@@ -66,7 +66,10 @@ pub(super) static EXECUTOR: AtomicPtr<crate::executor::Executor> =
     AtomicPtr::new(std::ptr::null_mut());
 
 /// Set the global executor, used for spawning new tasks.
-pub fn set_executor(executor: &crate::executor::Executor) {
+///
+/// Tasks spawned with [`crate::executor::spawn`] are run by whichever thread
+/// drives `executor`.
+pub fn set_executor(executor: &'static crate::executor::Executor) {
     EXECUTOR.store(
         std::ptr::from_ref(executor) as *mut _,
         std::sync::atomic::Ordering::SeqCst,
